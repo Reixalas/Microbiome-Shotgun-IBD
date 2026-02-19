@@ -3,9 +3,9 @@
 #SBATCH --job-name=megahit_ruben
 #SBATCH --output=megahit_ruben.%j.out
 #SBATCH --error=megahit_ruben.%j.err
-#SBATCH --cpus-per-task=4           # Pugem a 8 per anar més ràpid
-#SBATCH --mem=32G                   # L'assemblatge necessita força RAM
-#SBATCH --time=24:00:00             
+#SBATCH --cpus-per-task=4           
+#SBATCH --mem=32G                   
+             
 
 # Evitem problemes de llenguatge
 export LC_ALL=C
