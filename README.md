@@ -92,3 +92,25 @@ L'script `index.sh` executa la comanda `bowtie2-build`. Aquest procés agafa el 
 
 * **Input:** `GCF_000001405.40_GRCh38.p14_genomic.fna` (El fitxer amb tota la seqüència de l'ADN humà).
 * **Output:** `GRCh38_index` (Un conjunt de 6 fitxers petits amb extensió `.bt2`).
+
+## 🧬 Etapa 3: Eliminació de l'ADN de l'Hoste (Bowtie2 + Samtools)
+
+Un cop les dades estan netes de seqüències de mala qualitat, el següent pas crític en metagenòmica clínica és l'eliminació de les lectures procedents de l'hoste (humà). Aquest procés garanteix que les anàlisis posteriors es basin exclusivament en el microbioma.
+
+### 🛠️ Lògica del Pipeline d'Alineament
+L'script `bowtie2.sh` executa un flux de treball de quatre passos per a cadascuna de les 114 mostres:
+
+#### 1. Alineament amb Bowtie2
+* **Comanda:** `bowtie2 -x GRCh38_index --very-sensitive`
+* **Què fa?** Compara les nostres lectures contra l'índex del genoma humà creat prèviament. L'opció `--very-sensitive` s'utilitza per maximitzar la probabilitat de trobar qualsevol fragment d'ADN humà, encara que tingui petites variacions.
+
+#### 2. Processament amb Samtools (BAM i Ordenació)
+* **Què fa?** El resultat de Bowtie2 és un fitxer `.sam` (molt gran). Utilitzem `samtools` per convertir-lo a `.bam` (format binari comprimit) i ordenar-lo. Això és necessari perquè l'ordinador pugui filtrar les dades de manera eficient.
+
+#### 3. Filtratge de lectures "no-humanes"
+* **Comanda:** `samtools view -f 12 -F 256`
+* **Què fa?** Aquest és el pas clau. Mitjançant *flags* (codis numèrics), demanem al programa que ens doni **només** les lectures que **NO** han alineat contra el genoma humà (lectures *unmapped*). 
+   - El flag `-f 12` extreu les parelles on ni la R1 ni la R2 han trobat coincidència amb l'humà.
+
+#### 4. Recuperació del format FASTQ
+* **Què fa?** Finalment, convertim el fitxer de bacteris filtrats (`.bam`) de nou al format original (`.fastq.gz`). Aquests fitxers resultants (`_nonhuman_R1.fastq.gz`) són els que utilitzarem per a l'assemblatge final.
