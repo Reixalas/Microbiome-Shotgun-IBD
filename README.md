@@ -114,3 +114,23 @@ L'script `bowtie2.sh` executa un flux de treball de quatre passos per a cadascun
 
 #### 4. Recuperació del format FASTQ
 * **Què fa?** Finalment, convertim el fitxer de bacteris filtrats (`.bam`) de nou al format original (`.fastq.gz`). Aquests fitxers resultants (`_nonhuman_R1.fastq.gz`) són els que utilitzarem per a l'assemblatge final.
+
+## 🧩 Etapa 4: Assemblatge de Genomes *de novo* (MEGAHIT)
+
+Un cop obtingudes les lectures d'alta qualitat i lliures de contaminació humana, el següent pas crític és l'**assemblatge**. En aquesta etapa, unim les lectures curtes (reads) per formar fragments d'ADN molt més llargs i continus anomenats **contigs**.
+
+### 🛠️ Lògica de l'Script d'Automatització
+S'ha dissenyat l'script `megahit_ruben.sh` per processar de manera seqüencial les 114 mostres mitjançant un bucle `for`. Aquest script està optimitzat per a la computació d'alt rendiment (HPC) amb les següents especificacions:
+
+* **Gestió de Recursos (SLURM):** S'han assignat **32GB de RAM** i **4 CPUs**, recursos indispensables per gestionar la complexitat dels grafs de de Bruijn que genera l'assemblador.
+* **Walltime (24:00:00):** S'ha definit un límit de temps de 24 hores com a mesura de seguretat. L'assemblatge és el procés més intensiu del pipeline i aquest marge assegura que les mostres més riques en biodiversitat es completin sense interrupcions del sistema.
+* **Variables d'Entorn:** S'han exportat les variables `LC_ALL=C` i `LANG=C` per evitar errors de compatibilitat de llenguatge durant el processament de dades binàries.
+
+
+
+### ⚙️ Configuració de MEGAHIT
+Per a la reconstrucció dels genomes, s'ha utilitzat **MEGAHIT v1.2.9** amb una configuració específica per a microbiomes complexos:
+
+1.  **`--presets meta-large`:** Aquesta és la decisió tècnica més rellevant de l'etapa. Aquest mode està optimitzat per a metagenomes complexos (com els de femta en pacients amb IBD). Ajusta els paràmetres de l'algorisme per capturar tant els organismes molt abundants com aquells que es troben en baixa proporció.
+2.  **Estratègia de k-mers:** El programa utilitza una sèrie iterativa de k-mers per resoldre amb precisió les regions repetitives de l'ADN bacterià.
+3.  **Organització de sortida:** Cada mostra genera la seva pròpia carpeta (`megahit_$BASE`) que conté el fitxer resultant més important: **`final.contigs.fa`**.
