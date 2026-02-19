@@ -42,3 +42,30 @@ S'ha utilitzat l'script `scripts/shotgunR.sh` per executar l'eina **FastQC** de 
 * **Interpretació:** Qualsevol corba ascendent indica que s'està llegint l'adaptador en lloc de l'insert d'ADN bacterià.
 * **Acció correctiva:** Aquesta mètrica justifica l'ús de programes com **Trimmomatic**. L'eliminació d'adaptadors és vital per evitar que **MEGAHIT** generi contigs quimèrics (falses unions d'ADN).
 
+## ✂️ Etapa 2: Trimming i Filtratge de Qualitat (Trimmomatic)
+
+Un cop analitzada la qualitat inicial, el segon pas del pipeline consisteix a netejar les lectures brutes. Per a aquesta tasca s'ha utilitzat **Trimmomatic v0.39**, una eina que permet eliminar seqüències artificials i bases de baixa fiabilitat.
+
+### 🛠️ Automatització i Lògica de l'Script
+S'ha implementat l'script `scripts/trimmo_ruben.sh`, el qual utilitza un bucle `for` per processar de forma iterativa totes les mostres *paired-end* del directori d'entrada. L'script està optimitzat per a un entorn HPC amb 4 CPUs i 32GB de RAM.
+
+### ⚙️ Paràmetres de Filtratge Aplicats
+Dins de l'execució, s'han definit els següents filtres específics per garantir la puresa de les dades abans de l'assemblatge:
+
+1. **ILLUMINACLIP (NexteraPE-PE.fa:2:30:10):** - Elimina els adaptadors Nextera. 
+   - El valor `2` permet fins a 2 desajustaments (*mismatches*). 
+   - `30` i `10` són els llindars de puntuació per confirmar que la seqüència trobada és realment un adaptador.
+
+2. **LEADING:3 i TRAILING:3:** - Elimina les bases dels extrems (inici i final) si la seva qualitat és inferior a un Phred score de 3. Això neteja els errors més evidents de la màquina de seqüenciar.
+
+3. **SLIDINGWINDOW:4:15:** - Escaneja la lectura amb una finestra lliscant de **4 bases**.
+   - Si la qualitat mitjana de la finestra cau per sota de **15**, es talla la lectura en aquest punt. Això elimina les zones on la qualitat comença a degradar-se.
+
+4. **MINLEN:36:** - Descarta qualsevol lectura que, després del filtratge, tingui una longitud inferior a **36 bases**. Això evita l'ús de fragments massa curts que podrien generar ambigüitats en l'assemblatge amb MEGAHIT.
+
+
+
+### 📦 Gestió de Resultats
+L'script genera quatre fitxers per cada mostra:
+* **Paired (R1/R2):** Lectures que han mantingut la seva parella després del filtratge (són les que farem servir).
+* **Unpaired (R1/R2):** Lectures on només un dels membres de la parella ha superat els filtres.
