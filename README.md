@@ -10,7 +10,7 @@ Les dades de seqüenciació crues utilitzades en aquest projecte estan disponibl
 
 Aquest és el pas inicial i crític del pipeline. Abans de realitzar qualsevol inferència biològica, és indispensable validar la **integritat tècnica** i la fiabilitat de les dades de seqüenciació brutes.
 
-### 🛠️ Automatització
+### Automatització
 S'ha utilitzat l'script `scripts/shotgunR.sh` per executar l'eina **FastQC** de forma automatitzada sobre les mostres. L'eina analitza els fitxers de lectures (`.fastq.gz`) i genera informes diagnòstics basats en els següents paràmetres:
 
 #### 1. Per Base Sequence Quality (Escala Phred)
@@ -42,14 +42,14 @@ S'ha utilitzat l'script `scripts/shotgunR.sh` per executar l'eina **FastQC** de 
 * **Interpretació:** Qualsevol corba ascendent indica que s'està llegint l'adaptador en lloc de l'insert d'ADN bacterià.
 * **Acció correctiva:** Aquesta mètrica justifica l'ús de programes com **Trimmomatic**. L'eliminació d'adaptadors és vital per evitar que **MEGAHIT** generi contigs quimèrics (falses unions d'ADN).
 
-## ✂️ Etapa 2: Trimming i Filtratge de Qualitat (Trimmomatic)
+## Etapa 2: Trimming i Filtratge de Qualitat (Trimmomatic)
 
 Un cop analitzada la qualitat inicial, el segon pas del pipeline consisteix a netejar les lectures brutes. Per a aquesta tasca s'ha utilitzat **Trimmomatic v0.39**, una eina que permet eliminar seqüències artificials i bases de baixa fiabilitat.
 
-### 🛠️ Automatització i Lògica de l'Script
+### Automatització i Lògica de l'Script
 S'ha implementat l'script `scripts/trimmo_ruben.sh`, el qual utilitza un bucle `for` per processar de forma iterativa totes les mostres *paired-end* del directori d'entrada. L'script està optimitzat per a un entorn HPC amb 4 CPUs i 32GB de RAM.
 
-### ⚙️ Paràmetres de Filtratge Aplicats
+### Paràmetres de Filtratge Aplicats
 Dins de l'execució, s'han definit els següents filtres específics per garantir la puresa de les dades abans de l'assemblatge:
 
 1. **ILLUMINACLIP (NexteraPE-PE.fa:2:30:10):** - Elimina els adaptadors Nextera. 
@@ -65,7 +65,30 @@ Dins de l'execució, s'han definit els següents filtres específics per garanti
 
 
 
-### 📦 Gestió de Resultats
+### Gestió de Resultats
 L'script genera quatre fitxers per cada mostra:
 * **Paired (R1/R2):** Lectures que han mantingut la seva parella després del filtratge (són les que farem servir).
 * **Unpaired (R1/R2):** Lectures on només un dels membres de la parella ha superat els filtres.
+
+## Etapa 3: Eliminació de l'ADN de l'Hoste (Bowtie2)
+
+Tot i que l'objectiu de l'estudi és el microbioma, les mostres fecals contenen una fracció variable d'ADN procedent de les cèl·lules del pacient (hoste). Aquesta etapa és crucial per "netejar" digitalment la mostra i quedar-nos només amb la informació microbiana.
+
+### En què consisteix aquest procés?
+Utilitzem l'alineador **Bowtie2 v2.4.2** per comparar totes les nostres lectures filtrades contra el genoma de referència humà (**GRCh38**).
+
+1. **Mapeig contra l'humà:** El programa intenta "enganxar" cada lectura al genoma humà.
+2. **Separació de lectures:**
+   - Si una lectura coincideix amb el genoma humà, es descarta.
+   - Si una lectura **NO** coincideix, significa que el seu origen és microbià (bacteris, virus o fongs).
+3. **Extracció de dades netes:** Ens quedem exclusivament amb les lectures que no han alineat amb l'humà per a les anàlisis posteriors.
+
+## 🗂️ Etapa 2.5: Creació de l'Índex del Genoma Humà
+
+Abans de procedir a l'eliminació de les lectures de l'hoste, cal preparar el genoma de referència. El programa **Bowtie2** no treballa directament amb fitxers FASTA de seqüència bruta, sinó que requereix un format d'índex optimitzat per a la cerca ràpida.
+
+### 🛠️ Què fa aquest script?
+L'script `index.sh` executa la comanda `bowtie2-build`. Aquest procés agafa el genoma de referència humà (**GRCh38.p14**) i el transforma en una estructura de dades anomenada *Burrows-Wheeler Transform* (BWT).
+
+* **Input:** `GCF_000001405.40_GRCh38.p14_genomic.fna` (El fitxer amb tota la seqüència de l'ADN humà).
+* **Output:** `GRCh38_index` (Un conjunt de 6 fitxers petits amb extensió `.bt2`).
