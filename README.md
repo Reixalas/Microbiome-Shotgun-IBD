@@ -38,31 +38,24 @@ Els adaptadors són fragments d'ADN sintètic utilitzats durant la preparació d
 
 ## Etapa 2: Trimming i Filtratge de Qualitat (Trimmomatic)
 
-Un cop analitzada la qualitat inicial, el segon pas del pipeline consisteix a netejar les lectures brutes. Per a aquesta tasca s'ha utilitzat **Trimmomatic v0.39**, una eina que permet eliminar seqüències artificials i bases de baixa fiabilitat.
+Després de l'avaluació inicial de qualitat mitjançant FastQC, la segona fase del pipeline se centra en el pre-processament i curació de les lectures brutes (raw reads). Per a aquesta tasca s'ha emprat Trimmomatic v0.39, una eina optimitzada per a l'eliminació d'artefactes de seqüenciació i bases de baixa fiabilitat. L'objectiu és garantir que només les dades amb una probabilitat d'error mínima alimentin l'etapa d'assemblatge de novo i eliminem els adaptadors.
 
-### Automatització i Lògica de l'Script
-S'ha implementat l'script `scripts/trimmo_ruben.sh`, el qual utilitza un bucle `for` per processar de forma iterativa totes les mostres *paired-end* del directori d'entrada. L'script està optimitzat per a un entorn HPC amb 4 CPUs i 32GB de RAM.
+Fonament de la Tecnologia Paired-End
+El dataset d'entrada es compon de parelles de fitxers (R1 i R2) per a cada mostra, fruit de la tecnologia de seqüenciació Paired-End. En aquest mètode, cada fragment de la llibreria genòmica és llegit des dels seus dos extrems: la lectura forward (R1) i la lectura reverse (R2).
 
-### Paràmetres de Filtratge Aplicats
-Dins de l'execució, s'han definit els següents filtres específics per garantir la puresa de les dades abans de l'assemblatge:
+Aquesta configuració proporciona un context espacial crític: en conèixer la distància física aproximada entre les dues lectures d'una mateixa parella, l'algoritme d'assemblatge pot resoldre zones repetitives o ambigües del genoma amb una precisió molt superior a la de les lectures simples (single-end).
 
-1. **ILLUMINACLIP (NexteraPE-PE.fa:2:30:10):** - Elimina els adaptadors Nextera. 
-   - El valor `2` permet fins a 2 desajustaments (*mismatches*). 
-   - `30` i `10` són els llindars de puntuació per confirmar que la seqüència trobada és realment un adaptador.
+El Repte de la Sincronització
+Un aspecte crític durant la curació és evitar l'asincronia entre fitxers. Atès que les lectures estan aparellades, cada línia del fitxer R1 té la seva parella corresponent en la mateixa posició del fitxer R2. Si un filtre eliminés una lectura en R1 però mantingués la seva parella en R2, els fitxers quedarien desfasats, provocant errors fatals en els algorismes d'assemblatge posteriors (com MEGAHIT), que intentarien emparellar seqüències sense relació biològica.
 
-2. **LEADING:3 i TRAILING:3:** - Elimina les bases dels extrems (inici i final) si la seva qualitat és inferior a un Phred score de 3. Això neteja els errors més evidents de la màquina de seqüenciar.
+Per mitigar aquest risc, s'ha implementat l'script scripts/trimmo_ruben.sh. Aquest utilitza un bucle for que presenta ambdós fitxers simultàniament a Trimmomatic, permetent que el programa avaluï la qualitat de cada parella en temps real i prengui decisions coordinades.
 
-3. **SLIDINGWINDOW:4:15:** - Escaneja la lectura amb una finestra lliscant de **4 bases**.
-   - Si la qualitat mitjana de la finestra cau per sota de **15**, es talla la lectura en aquest punt. Això elimina les zones on la qualitat comença a degradar-se.
+Gestió i Classificació de Resultats
+Com a resultat d'aquest processament sincronitzat, Trimmomatic genera quatre fluxos de dades per cada mostra, garantint la integritat del trencaclosques genòmic:
 
-4. **MINLEN:36:** - Descarta qualsevol lectura que, després del filtratge, tingui una longitud inferior a **36 bases**. Això evita l'ús de fragments massa curts que podrien generar ambigüitats en l'assemblatge amb MEGAHIT.
+Paired (R1/R2): Lectures supervivents on ambdós membres de la parella han superat els llindars de qualitat. Aquestes constitueixen les dades principals per a l'assemblatge, ja que conserven la informació de distància original.
 
-
-
-### Gestió de Resultats
-L'script genera quatre fitxers per cada mostra:
-* **Paired (R1/R2):** Lectures que han mantingut la seva parella després del filtratge (són les que farem servir).
-* **Unpaired (R1/R2):** Lectures on només un dels membres de la parella ha superat els filtres.
+Unpaired (R1/R2): Lectures "òrfenes" on només un dels membres ha superat el control de qualitat. Tot i contenir seqüències vàlides, s'han segregat i descartat en aquest pipeline per mantenir la màxima coherència i rigor en la construcció dels contigs.
 
 ## Etapa 3: Eliminació de l'ADN de l'Hoste (Bowtie2)
 
