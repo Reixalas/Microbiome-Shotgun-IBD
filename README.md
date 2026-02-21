@@ -38,19 +38,35 @@ Els adaptadors són fragments d'ADN sintètic utilitzats durant la preparació d
 
 ## Etapa 2: Trimming i Filtratge de Qualitat (Trimmomatic)
 
-Després de l'avaluació inicial de qualitat mitjançant FastQC, la segona fase del pipeline se centra en el pre-processament i curació de les lectures brutes (raw reads). Per a aquesta tasca s'ha emprat Trimmomatic v0.39, una eina optimitzada per a l'eliminació d'artefactes de seqüenciació i bases de baixa fiabilitat. L'objectiu és garantir que només les dades amb una probabilitat d'error mínima alimentin l'etapa d'assemblatge de novo i eliminem els adaptadors. El dataset d'entrada es compon de parelles de fitxers (R1 i R2) per a cada mostra, fruit de la tecnologia de seqüenciació Paired-End. En aquest mètode, cada fragment de la llibreria genòmica és llegit des dels seus dos extrems: la lectura forward (R1) i la lectura reverse (R2).
+Després de l'avaluació inicial amb FastQC, la segona fase del pipeline se centra en el pre-processament i curació de les lectures brutes (raw reads). Per a aquesta tasca s'ha emprat Trimmomatic v0.39, una eina optimitzada per a l'eliminació d'artefactes de seqüenciació i bases de baixa fiabilitat. L'objectiu primordial és garantir que només les dades amb una probabilitat d'error mínima alimentin l'etapa d'assemblatge de novo.
 
-El Repte de la Sincronització
-Un aspecte crític durant la curació és evitar l'asincronia entre fitxers. Atès que les lectures estan aparellades, cada línia del fitxer R1 té la seva parella corresponent en la mateixa posició del fitxer R2. Si un filtre eliminés una lectura en R1 però mantingués la seva parella en R2, els fitxers quedarien desfasats, provocant errors fatals en els algorismes d'assemblatge posteriors (com MEGAHIT), que intentarien emparellar seqüències sense relació biològica.
+L'script scripts/trimmo_ruben.sh executa Trimmomatic en mode PE (Paired-End), avaluant ambdues lectures (FORWARD I REVERSE - R1 i R2) simultàniament per prendre decisions coordinades en temps real. 'eficiència de l'script scripts/trimmo_ruben.sh rau en la implementació d'un bucle for, el qual permet processar de forma iterativa i automatitzada totes les mostres del projecte. L'script està programat per identificar automàticament cada parella de fitxers (R1 i R2) dins del directori de seqüències brutes.
 
-Per mitigar aquest risc, s'ha implementat l'script scripts/trimmo_ruben.sh. Aquest utilitza un bucle for que presenta ambdós fitxers simultàniament a Trimmomatic, permetent que el programa avaluï la qualitat de cada parella en temps real i prengui decisions coordinades.
+Un cop identificades, executa Trimmomatic en mode PE (Paired-End), avaluant ambdues lectures (Forward i Reverse - R1 i R2) simultàniament.
 
-Gestió i Classificació de Resultats
-Com a resultat d'aquest processament sincronitzat, Trimmomatic genera quatre fluxos de dades per cada mostra, garantint la integritat del trencaclosques genòmic:
+Configuració i Paràmetres de Filtratge
 
-Paired (R1/R2): Lectures supervivents on ambdós membres de la parella han superat els llindars de qualitat. Aquestes constitueixen les dades principals per a l'assemblatge, ja que conserven la informació de distància original.
+Dins de l'execució, s'han definit els següents mòduls per garantir la puresa de les dades:
 
-Unpaired (R1/R2): Lectures "òrfenes" on només un dels membres ha superat el control de qualitat. Tot i contenir seqüències vàlides, s'han segregat i descartat en aquest pipeline per mantenir la màxima coherència i rigor en la construcció dels contigs.
+ILLUMINACLIP:NexteraPE-PE.fa:2:30:10: Mòdul de detecció d'adaptadors Nextera.
+
+El 2 permet fins a dos errors (mismatches) en la cerca.
+
+El 30 (palíndrom) i el 10 (simple) són els llindars de puntuació requerits per confirmar que es tracta d'un adaptador i no de DNA real.
+
+LEADING:3 i TRAILING:3: Retalla les bases dels extrems (inici i final) si la seva qualitat és inferior a un Phred score de 3, eliminant els errors més evidents dels sensors de la màquina.
+
+SLIDINGWINDOW:4:15: Filtre dinàmic de qualitat. Analitza la lectura en finestres de 4 bases i la talla si la qualitat mitjana del segment cau per sota de 15. Això elimina les zones on la precisió de la seqüenciació comença a degradar-se.
+
+MINLEN:36: Estableix que qualsevol lectura que, després de la curació, tingui una longitud inferior a 36 bases sigui descartada. Fragments tan curts podrien generar ambigüitats i falsos alineaments durant l'assemblatge.
+
+Gestió de Resultats
+Com a resultat d'aquest processament, Trimmomatic genera quatre fluxos de dades per cada mostra que garanteixen la integritat del procés:
+
+Paired (R1/R2): Lectures supervivents on ambdós membres (FORWARD i REVERSE) han superat els controls. Són les dades "netes" i sincronitzades que s'utilitzaran per a l'assemblatge.
+
+Unpaired (R1/R2): Lectures "òrfenes" on només un membre de la parella ha superat els filtres. Tot i ser seqüències vàlides, es segreguen i es descarten en aquest pipeline per mantenir el rigor i la coherència espacial en la construcció dels contigs.
+
 
 ## Etapa 3: Eliminació de l'ADN de l'Hoste (Bowtie2)
 
