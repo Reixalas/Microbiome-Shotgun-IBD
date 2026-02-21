@@ -38,12 +38,7 @@ Els adaptadors són fragments d'ADN sintètic utilitzats durant la preparació d
 
 ## Etapa 2: Trimming i Filtratge de Qualitat (Trimmomatic)
 
-Després de l'avaluació inicial de qualitat mitjançant FastQC, la segona fase del pipeline se centra en el pre-processament i curació de les lectures brutes (raw reads). Per a aquesta tasca s'ha emprat Trimmomatic v0.39, una eina optimitzada per a l'eliminació d'artefactes de seqüenciació i bases de baixa fiabilitat. L'objectiu és garantir que només les dades amb una probabilitat d'error mínima alimentin l'etapa d'assemblatge de novo i eliminem els adaptadors.
-
-Fonament de la Tecnologia Paired-End
-El dataset d'entrada es compon de parelles de fitxers (R1 i R2) per a cada mostra, fruit de la tecnologia de seqüenciació Paired-End. En aquest mètode, cada fragment de la llibreria genòmica és llegit des dels seus dos extrems: la lectura forward (R1) i la lectura reverse (R2).
-
-Aquesta configuració proporciona un context espacial crític: en conèixer la distància física aproximada entre les dues lectures d'una mateixa parella, l'algoritme d'assemblatge pot resoldre zones repetitives o ambigües del genoma amb una precisió molt superior a la de les lectures simples (single-end).
+Després de l'avaluació inicial de qualitat mitjançant FastQC, la segona fase del pipeline se centra en el pre-processament i curació de les lectures brutes (raw reads). Per a aquesta tasca s'ha emprat Trimmomatic v0.39, una eina optimitzada per a l'eliminació d'artefactes de seqüenciació i bases de baixa fiabilitat. L'objectiu és garantir que només les dades amb una probabilitat d'error mínima alimentin l'etapa d'assemblatge de novo i eliminem els adaptadors. El dataset d'entrada es compon de parelles de fitxers (R1 i R2) per a cada mostra, fruit de la tecnologia de seqüenciació Paired-End. En aquest mètode, cada fragment de la llibreria genòmica és llegit des dels seus dos extrems: la lectura forward (R1) i la lectura reverse (R2).
 
 El Repte de la Sincronització
 Un aspecte crític durant la curació és evitar l'asincronia entre fitxers. Atès que les lectures estan aparellades, cada línia del fitxer R1 té la seva parella corresponent en la mateixa posició del fitxer R2. Si un filtre eliminés una lectura en R1 però mantingués la seva parella en R2, els fitxers quedarien desfasats, provocant errors fatals en els algorismes d'assemblatge posteriors (com MEGAHIT), que intentarien emparellar seqüències sense relació biològica.
