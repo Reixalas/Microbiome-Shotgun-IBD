@@ -8,39 +8,33 @@ Les dades de seqüenciació crues utilitzades en aquest projecte estan disponibl
 
 ## Etapa 1: Control de Qualitat (FastQC)
 
-Aquest és el pas inicial i crític del pipeline. Abans de realitzar qualsevol inferència biològica, és indispensable validar la **integritat tècnica** i la fiabilitat de les dades de seqüenciació brutes.
+Abans de realitzar qualsevol inferència biològica, és indispensable validar la **integritat tècnica** i la fiabilitat de les dades de seqüenciació brutes.
 
 ### Automatització
 S'ha utilitzat l'script `scripts/shotgunR.sh` per executar l'eina **FastQC** de forma automatitzada sobre les mostres. L'eina analitza els fitxers de lectures (`.fastq.gz`) i genera informes diagnòstics basats en els següents paràmetres:
 
-#### 1. Per Base Sequence Quality (Escala Phred)
-* **Descripció:** És el gràfic que divideix la qualitat en tres zones: Verda, Groga i Vermella.
-* **Interpretació:** Mesura el **Phred Score (Q)**. Un valor de **Q30** indica que la màquina té una precisió del **99,9%** en identificar cada nucleòtid (1 error per cada 1.000 bases).
-* **Context Metagenòmic:** Com que busquem gens específics (com els de l'**operó *bai***), necessitem una fidelitat absoluta. Si la qualitat cau al final de la lectura, l'informe justifica l'ús de *trimming* per evitar errors en l'assemblatge posterior.
+#### 1. Per Base Sequence Quality (L'escala Phred)
+Aquest gràfic és el primer indicador de la fiabilitat tècnica de la seqüenciació i es presenta mitjançant diagrames de caixes (boxplots) que distribueixen la qualitat en cada posició de la lectura. L'eix vertical representa el Phred Score (Q), una escala logarítmica que ens indica la probabilitat d'error en la identificació de cada nucleòtid. L'objectiu és que la pràctica totalitat de la lectura es mantingui dins de la zona verda. Si les "caixes" o les línies de mitjana cauen cap a la zona groga (alerta) o vermella (mala qualitat), la probabilitat que les lletres assignades siguin incorrectes augmenta exponencialment. En l'anàlisi de tipus shotgun, on l'objectiu final és l'assemblatge de genomes, la precisió és crítica. Les màquines de seqüenciació solen perdre qualitat a mesura que avancen cap al final de la lectura. Si aquest gràfic mostra una degradació final, utilitzarem aquesta informació per definir el punt de tall en l'etapa de trimming.
 
 
 
-#### 2. Per Sequence GC Content (Signatura Genòmica)
-* **Descripció:** Mostra la distribució del contingut de Guanina i Citosina en totes les lectures de la mostra.
-* **Interpretació:** En una mostra de microbioma complex, esperem una corba que s'assembli a una **campana de Gauss**.
-* **Senyals d'alerta:** L'aparició de pics anòmals (perfils multimodals) pot indicar la presència d'un contaminant dominant o un biaix en la preparació de la biblioteca. Una corba neta confirma una barreja diversa i equilibrada de genomes bacterians.
+#### 2. Per Sequence GC Content (La signatura genòmica)
+Aquest mòdul mesura la proporció de Guanina i Citosina en cada lectura i ens ofereix una visió global de la composició genòmica de la mostra. En metagenòmica, aquest gràfic actua com una "empremta dactilar" de la comunitat microbiana que estem analitzant. En una mostra de microbioma intestinal complex, el gràfic ha de mostrar una distribució suau que s'aproximi a una campana de Gauss. Això es deu al fet que estem seqüenciant centenars d'espècies bacterianes diferents, cadascuna amb el seu propi percentatge de GC; la superposició de tots aquests genomes crea una corba normalitzada. Una campana neta i ben definida confirma que la mostra és una barreja diversa i equilibrada de genomes.
 
 
+#### 3. Per Base Sequence Content (L'estabilitat química)
+Aquest mòdul examina la proporció relativa de les quatre bases nitrogenades (Adenina, Timina, Citosina i Guanina) en cada posició al llarg de la longitud total de les lectures. En una seqüenciació ideal i aleatòria, esperaríem que la quantitat de cada base fos constant i no variés segons la posició. En condicions òptimes, el gràfic ha de mostrar quatre línies pràcticament paral·leles i estables durant la major part de la lectura. Tot i que els percentatges de A-T i G-C no tenen per què ser iguals (això depèn del contingut GC de la mostra), la seva proporció no hauria d'oscil·lar significativament d'una base a la següent. L'estabilitat d'aquestes línies és un indicador que la química de la seqüenciació ha estat uniforme.
 
-#### 3. Per Base Sequence Content (Estabilitat Química)
-* **Descripció:** Analitza la proporció de les quatre bases (A, T, C, G) al llarg de tota la lectura.
-* **Interpretació:** Les quatre línies han de tendir a ser paral·leles i estables.
-* **Senyals d'alerta:** Oscil·lacions al principi (posicions 1-10) són habituals pel biaix dels *primers*, però si no s'estabilitzen, indiquen problemes químics o presència massiva d'adaptadors.
+- Oscil·lacions inicials: És molt comú, i tècnicament acceptable, observar un patró de "ziga-zaga" o línies creuades en les primeres 10-12 bases. Això no es deu a una mala qualitat, sinó a l'ús de random primers (encebadors aleatoris) durant la preparació de la biblioteca de seqüenciació d'Illumina, els quals tenen una lleugera preferència d'unió per certes seqüències inicials.
+
+- Manca d'estabilització: Si les línies continuen creuant-se o mostren canvis bruscos més enllà de la posició 15, això indica un problema. Pot ser senyal de la presència massiva d'adaptadors, d'una diversitat genètica extremadament baixa en la mostra, o d'un error en el flux químic de la màquina.
 
 #### 4. Sequence Duplication Levels (Riquesa vs. Biaix)
-* **Descripció:** Mesura quantes vegades es repeteix exactament una mateixa seqüència.
-* **Interpretació:** En *shotgun*, una certa duplicació és esperable, però valors extremadament alts són senyal de **biaix per PCR**.
-* **Decisió tècnica:** Si la duplicació és excessiva, indica una pèrdua de la diversitat real de la mostra, cosa que podria distorsionar els perfils d'abundància bacteriana.
 
-#### 5. Adapter Content (Neteja de Llibreria)
-* **Descripció:** Cerca seqüències sintètiques utilitzades per "enganxar" l'ADN a la placa de seqüenciació.
-* **Interpretació:** Qualsevol corba ascendent indica que s'està llegint l'adaptador en lloc de l'insert d'ADN bacterià.
-* **Acció correctiva:** Aquesta mètrica justifica l'ús de programes com **Trimmomatic**. L'eliminació d'adaptadors és vital per evitar que **MEGAHIT** generi contigs quimèrics (falses unions d'ADN).
+Aquest mòdul analitza la redundància de la biblioteca, calculant el percentatge de lectures que apareixen més d'una vegada a la mostra. És una mètrica clau per entendre si la quantitat de dades que hem generat representa realment la diversitat de la comunitat microbiana o si és fruit d'una amplificació artificial. És normal i esperable trobar un cert nivell de duplicació, especialment si la seqüenciació és molt profunda. Això passa perquè, en llegir milions de fragments d'ADN, és estadísticament probable seqüenciar diverses vegades les regions dels genomes bacterians més abundants. Tanmateix, busquem que la gran majoria de les seqüències es trobin en la categoria de "1" (lectures úniques), fet que indica una biblioteca rica i diversa. Si el gràfic mostra un pic elevat en nivells de duplicació alts (per exemple, seqüències que es repeteixen més de 10 o 100 vegades), estem davant d'un senyal de biaix per PCR. Això passa quan, durant la preparació de la biblioteca al laboratori, uns pocs fragments d'ADN s'amplifiquen excessivament per sobre dels altres. El programa podria interpretar que un bacteri és molt abundant quan, en realitat, només ha estat sobreamplificat tècnicament.
+
+#### 5. Adapter Content (Presència d'ADN sintètic)
+Els adaptadors són fragments d'ADN sintètic utilitzats durant la preparació de la biblioteca al laboratori que no han de formar part de l'anàlisi biològica real. Qualsevol corba ascendent en aquest mòdul indica que haurem de realitzar un filtratge amb Trimmmatic. La presència d'aquests elements sol produir-se quan el fragment d'ADN és més curt que el nombre de cicles de seqüenciació, provocant que la màquina llegeixi part del material artificial. És crucial eliminar-los completament; fins i tot una presència mínima podria confondre l'assemblador MEGAHIT, portant-lo a unir seqüències artificials i crear genomes "quimèrics" o inexistents que invalidarien els resultats.
 
 ## Etapa 2: Trimming i Filtratge de Qualitat (Trimmomatic)
 
