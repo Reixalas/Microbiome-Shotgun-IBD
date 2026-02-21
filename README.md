@@ -1,6 +1,6 @@
 # Shotgun metagenomics analysis of IBD samples
 
-Aquest repositori conté el pipeline d’anàlisi de 114 mostres de metagenòmica shotgun procedents de l’estudi de Lee et al. (2021, Cell Host & Microbe). Les lectures s’han processat amb un flux de treball que inclou FastQC, trimming, alineament amb Bowtie2 i assemblatge amb MEGAHIT.
+Aquest repositori conté el pipeline d’anàlisi de 114 mostres de metagenòmica shotgun procedents de l’estudi de Lee et al. (2021, Cell Host & Microbe). Atesa la gran quantitat de dades i l'elevat cost computacional de l'anàlisi metagenòmica (especialment en la fase d'assemblatge), s'ha optat per processar les mostres en **blocs de 5 en 5**. Les lectures s’han processat amb un flux de treball que inclou FastQC, trimming, alineament amb Bowtie2 i assemblatge amb MEGAHIT.
 
 ## Disponibilitat de les dades
 Les dades de seqüenciació crues utilitzades en aquest projecte estan disponibles a la base de dades **NCBI Sequence Read Archive (SRA)** sota l'identificador de BioProject:
@@ -14,7 +14,7 @@ Aquest és el pas inicial i crític del pipeline. Abans de realitzar qualsevol i
 S'ha utilitzat l'script `scripts/shotgunR.sh` per executar l'eina **FastQC** de forma automatitzada sobre les mostres. L'eina analitza els fitxers de lectures (`.fastq.gz`) i genera informes diagnòstics basats en els següents paràmetres:
 
 #### 1. Per Base Sequence Quality (Escala Phred)
-* **Descripció:** És el gràfic que divideix la qualitat en tres zones: Verda (Bona), Groga (Alerta) i Vermella (Dolenta).
+* **Descripció:** És el gràfic que divideix la qualitat en tres zones: Verda, Groga i Vermella.
 * **Interpretació:** Mesura el **Phred Score (Q)**. Un valor de **Q30** indica que la màquina té una precisió del **99,9%** en identificar cada nucleòtid (1 error per cada 1.000 bases).
 * **Context Metagenòmic:** Com que busquem gens específics (com els de l'**operó *bai***), necessitem una fidelitat absoluta. Si la qualitat cau al final de la lectura, l'informe justifica l'ús de *trimming* per evitar errors en l'assemblatge posterior.
 
