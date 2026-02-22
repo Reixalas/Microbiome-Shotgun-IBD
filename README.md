@@ -27,11 +27,9 @@ Abans d'executar qualsevol etapa del *pipeline*, cal assegurar que el programari
 
 
 ---
-## 📊 Etapa 1: Control de Qualitat (FastQC)
+## Etapa 1: Control de Qualitat (FastQC)
 
 Abans de realitzar qualsevol inferència biològica, és indispensable validar la **integritat tècnica** i la fiabilitat de les dades de seqüenciació brutes.
-
-### ⚙️ Automatització
 S'ha utilitzat l'script `scripts/shotgunR.sh` per executar l'eina **FastQC** de forma automatitzada. Aquest procés analitza els fitxers de lectures (`.fastq.gz`) i genera informes diagnòstics basats en quatre mètriques clau:
 
 ---
@@ -52,11 +50,36 @@ Examina la proporció de les quatre bases (A, T, C, G) al llarg de la lectura.
 Detecta fragments d'ADN artificial (adaptadors) utilitzats durant la preparació de la biblioteca.
 * **Interpretació:** Qualsevol corba ascendent en aquest mòdul indica que haurem de realitzar un filtratge amb Trimmmatic. La presència d'aquests elements sol produir-se quan el fragment d'ADN és més curt que el nombre de cicles de seqüenciació, provocant que la màquina llegeixi part del material artificial. És crucial eliminar-los completament; fins i tot una presència mínima podria confondre l'assemblador MEGAHIT, portant-lo a unir seqüències artificials i crear genomes "quimèrics" o inexistents que invalidarien els resultats.
 
+## Etapa 2: Filtratge i Curació de les Lectures (Trimmomatic)
+
+Un cop avaluada la qualitat inicial amb **FastQC**, la segona fase del *pipeline* se centra en el pre-processament. Per a aquesta tasca s'ha emprat **Trimmomatic v0.39**, una eina especialitzada en l'eliminació d'artefactes de seqüenciació i la neteja de bases de baixa fiabilitat. L'objectiu és evitar la introducció d'errors durant l'assemblatge *de novo* en etapes posteriors.
 
 
-## Etapa 2: Trimming i Filtratge de Qualitat (Trimmomatic)
 
-Després de l'avaluació inicial amb **FastQC**, la segona fase del pipeline se centra en el pre-processament i curació de les lectures brutes (*raw reads*). Per a aquesta tasca s'ha emprat **Trimmomatic v0.39**, una eina optimitzada per a l'eliminació d'artefactes de seqüenciació i bases de baixa fiabilitat. L'objectiu primordial és garantir que només les dades amb una probabilitat d'error mínima alimentin l'etapa d'assemblatge *de novo*.
+### ⚙️ Automatització i Execució
+L'eficiència de l'script `scripts/trimmo_ruben.sh` rau en la implementació d'un **bucle `for`**, que permet processar de forma iterativa i automatitzada les 114 mostres del projecte. L'script identifica automàticament cada parella de fitxers (R1 i R2) i executa Trimmomatic en mode **PE (Paired-End)**. Aquest mode és crític, ja que avalua ambdues lectures simultàniament per prendre decisions coordinades sobre la integritat del fragment.
+
+### 🛠️ Configuració i Paràmetres de Filtratge
+S'han definit els següents mòduls per garantir la puresa de les dades abans de l'assemblatge:
+
+| Paràmetre | Descripció Tècnica |
+| :--- | :--- |
+| **ILLUMINACLIP** | Eliminació d'adaptadors Nextera. S'utilitza un llindar de **2** *mismatches* i puntuacions de **30** (palíndrom) i **10** (simple) per evitar falsos positius. |
+| **LEADING:3** / **TRAILING:3** | Retalla les bases dels extrems (inici i final) si la seva qualitat és inferior a un **Phred score de 3**, eliminant els errors més evidents dels sensors. |
+| **SLIDINGWINDOW:4:15** | Filtre dinàmic que analitza la lectura en finestres de 4 bases. Si la qualitat mitjana del segment cau per sota de **15**, la lectura es talla en aquest punt. |
+| **MINLEN:36** | Qualsevol lectura que, després de la curació, tingui una longitud inferior a **36 bases** és descartada per evitar ambigüitats en l'assemblatge. |
+
+### 📊 Gestió de Resultats
+Com a producte d'aquest processament, el programa genera quatre fluxos de dades per cada mostra.
+
+* **Paired (R1/R2):** Lectures "supervivents" on ambdós membres han superat els controls de qualitat. Són les dades sincronitzades que s'utilitzaran per a la reconstrucció genòmica.
+* **Unpaired (R1/R2):** Lectures "òrfenes" on només un membre de la parella ha superat els filtres. Tot i ser vàlides, es descarten en aquest *pipeline* per mantenir la coherència espacial necessària en l'assemblatge de *contigs*.
+
+---
+
+## Etapa 2: Trimming (Trimmomatic)
+
+Un cop avaluada la qualitat inicial amb **FastQC**, la segona fase del *pipeline* se centra en el pre-processament. Per a aquesta tasca s'ha emprat **Trimmomatic v0.39**, una eina especialitzada en l'eliminació d'artefactes de seqüenciació i la neteja de bases de baixa fiabilitat per evitar errors durant l'ansemblatge en etapes posteriors.
 
 ### Automatització i Execució
 L'eficiència de l'script `scripts/trimmo_ruben.sh` rau en la implementació d'un **bucle for**, el qual permet processar de forma iterativa i automatitzada totes les mostres del projecte. L'script està programat per identificar automàticament cada parella de fitxers (R1 i R2) dins del directori de seqüències brutes.
