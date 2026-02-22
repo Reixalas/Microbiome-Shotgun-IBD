@@ -6,7 +6,6 @@
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=32G
 
-# Això evitarà els avisos de "locale failed" del Perl
 export LC_ALL=C
 
 module load miniconda3
@@ -24,8 +23,7 @@ for R1 in "$INPUT_DIR"/*_R1_paired.fastq.gz; do
     
     echo "Processing sample: $BASE"
 
-    # 1. Bowtie2: Alineament
-    # IMPORTANT: Comprova que /home/41701728z/indexos/GRCh38_index.1.bt2 existeixi!
+
     bowtie2 -x "$OUTPUT_DIR"/GRCh38_index \
     -1 "$R1" \
     -2 "$R2" \
@@ -33,19 +31,15 @@ for R1 in "$INPUT_DIR"/*_R1_paired.fastq.gz; do
     -S "$OUTPUT_DIR"/"$BASE".sam \
     -p 4
     
-    # 2. Convertir i ordenar
     samtools view -uS "$OUTPUT_DIR"/"$BASE".sam | samtools sort -o "$OUTPUT_DIR"/"$BASE"_sorted.bam -
     
-    # 3. Filtrar no-humans
     samtools view -b -f 12 -F 256 "$OUTPUT_DIR"/"$BASE"_sorted.bam > "$OUTPUT_DIR"/"$BASE"_nonhuman.bam 
 
-    # 4. BAM a FASTQ
     samtools fastq \
     -1 "$OUTPUT_DIR"/"$BASE"_nonhuman_R1.fastq.gz \
     -2 "$OUTPUT_DIR"/"$BASE"_nonhuman_R2.fastq.gz \
     -0 /dev/null -s /dev/null -n \
     "$OUTPUT_DIR"/"$BASE"_nonhuman.bam 
 
-    # 5. Neteja de fitxers temporals
     rm "$OUTPUT_DIR"/"$BASE".sam "$OUTPUT_DIR"/"$BASE"_sorted.bam "$OUTPUT_DIR"/"$BASE"_nonhuman.bam
 done
