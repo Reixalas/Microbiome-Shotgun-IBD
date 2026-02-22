@@ -1,139 +1,143 @@
 # Shotgun Metagenomics Analysis of IBD Samples
 
-Aquest repositori conté el *pipeline* d’anàlisi bioinformàtica per al processament de **114 mostres** de metagenòmica *shotgun* procedents de l’estudi de **Lee et al. (2021)**, publicat a *Cell Host & Microbe*. 
+This repository contains the bioinformatics analysis pipeline for processing **114 shotgun metagenomics samples** from the study by **Lee et al. (2021)**, published in *Cell Host & Microbe*. 
 
-L'objectiu principal de l'anàlisi és l'estudi del microbioma intestinal en pacients amb Malaltia Inflamatòria Intestinal (IBD). Atesa la gran càrrega de dades, s'ha implementat una estratègia de processament optimitzada en **blocs de 5 mostres**. 
+The primary objective of the analysis is the study of the gut microbiome in patients with Inflammatory Bowel Disease (IBD). Due to the high data load, an optimized processing strategy has been implemented in **batches of 5 samples**.
 
 
 
 ---
 
-## Disponibilitat de les dades
+## Data Availability
 
-Les dades de seqüenciació crues utilitzades en aquest projecte estan dipositades a la base de dades **NCBI Sequence Read Archive (SRA)**. Es poden consultar i descarregar mitjançant l'identificador de BioProject:
+The raw sequencing data used in this project are deposited in the **NCBI Sequence Read Archive (SRA)** database. They can be consulted and downloaded using the BioProject identifier:
 
 * **BioProject ID:** [PRJNA685168](https://www.ncbi.nlm.nih.gov/bioproject/?term=PRJNA685168)
 
 ---
 
-## Preparació de l'Entorn Computacional
+## Computing Environment Setup
 
-Abans d'executar qualsevol etapa del *pipeline*, cal assegurar que el programari estigui correctament activat i configurat per treballar al clúster. Per fer-ho, se segueix aquest protocol:
+Before executing any stage of the pipeline, it is essential to ensure that the software is correctly activated and configured to work on the cluster. To do so, the following protocol is followed:
 
-* **`module load miniconda3`**: Habilita el gestor de paquets Conda al sistema. 
-* **`source ~/.bashrc`**: Actualitza i refresca la configuració del terminal.
-* **`conda activate shotgun1`** (o `megahit` segons l'etapa): Activa l'entorn virtual on resideixen les eines específiques (MEGAHIT, Bowtie2, Samtools, etc.).
-
-
+* **`module load miniconda3`**: Enables the Conda package manager on the system.
+* **`source ~/.bashrc`**: Updates and refreshes the terminal configuration.
+* **`conda activate shotgun1`** (or `megahit` depending on the stage): Activates the virtual environment where the specific tools reside (MEGAHIT, Bowtie2, Samtools, etc.).
 
 ---
-## Etapa 1: Control de Qualitat (FastQC)
 
-Abans de realitzar qualsevol inferència biològica, és indispensable validar la **integritat tècnica** i la fiabilitat de les dades de seqüenciació brutes.
-S'ha utilitzat l'script `scripts/shotgunR.sh` per executar l'eina **FastQC** de forma automatitzada. Aquest procés analitza els fitxers de lectures (`.fastq.gz`) i genera informes diagnòstics basats en quatre mètriques clau:
+## Stage 1: Quality Control (FastQC)
+
+Before performing any biological inference, it is indispensable to validate the **technical integrity** and reliability of the raw sequencing data.
+The script `scripts/shotgunR.sh` has been used to execute the **FastQC** tool in an automated manner. This process analyzes the read files (`.fastq.gz`) and generates diagnostic reports based on four key metrics:
 
 ---
 
 #### 1. Per Base Sequence Quality
-Aquest gràfic és el primer indicador de la fiabilitat tècnica. Utilitza diagrames de caixes (*boxplots*) per representar la qualitat en cada posició de la lectura.
-* **Interpretació:** L'eix vertical representa el Phred Score (Q), una escala logarítmica que ens indica la probabilitat d'error en la identificació de cada nucleòtid. L'objectiu és que la pràctica totalitat de la lectura es mantingui dins de la zona verda. Si les "caixes" o les línies de mitjana cauen cap a la zona groga (alerta) o vermella (mala qualitat), la probabilitat que les lletres assignades siguin incorrectes augmenta exponencialment. Les màquines de seqüenciació solen perdre qualitat a mesura que avancen cap al final de la lectura. Si aquest gràfic mostra una degradació final, utilitzarem aquesta informació per definir el punt de tall en l'etapa de trimming.
+This graph is the first indicator of technical reliability. It uses boxplots to represent the quality at each position of the read.
+* **Interpretation:** The vertical axis represents the Phred Score (Q), a logarithmic scale that indicates the probability of error in identifying each nucleotide. The goal is for practically the entire read to remain within the green zone. If the "boxes" or the mean lines drop into the yellow zone (warning) or red zone (poor quality), the probability that the assigned letters are incorrect increases exponentially. Sequencing machines typically lose quality as they progress toward the end of the read. If this graph shows final degradation, we will use this information to define the clipping point in the trimming stage.
+
+
 
 #### 2. Per Sequence GC Content 
-Mesura la proporció de Guanina i Citosina, actuant com una "empremta dactilar" de la comunitat microbiana.
-* **Interpretació:** Aquest mòdul mesura la proporció de Guanina i Citosina en cada lectura i ens ofereix una visió global de la composició genòmica de la mostra. En una mostra de microbioma intestinal complex, el gràfic ha de mostrar una distribució suau que s'aproximi a una campana de Gauss. Això es deu al fet que estem seqüenciant centenars d'espècies bacterianes diferents, cadascuna amb el seu propi percentatge de GC; la superposició de tots aquests genomes crea una corba normalitzada. 
+Measures the proportion of Guanine and Cytosine, acting as a "genomic fingerprint" of the microbial community.
+* **Interpretation:** This module measures the proportion of Guanine and Cytosine in each read and offers an overall view of the genomic composition of the sample. In a complex gut microbiome sample, the graph should show a smooth distribution approximating a Gaussian curve. This is because we are sequencing hundreds of different bacterial species, each with its own GC percentage; the overlapping of all these genomes creates a normalized curve.
 
 #### 3. Per Base Sequence Content
-Examina la proporció de les quatre bases (A, T, C, G) al llarg de la lectura.
-* **Interpretació:** En condicions òptimes, el gràfic ha de mostrar línies paral·leles i estables. És normal observar un patró de "ziga-zaga" en les primeres 10-12 bases a causa dels *random primers* d'Illumina. Si les línies no s'estabilitzen més enllà de la base 15, pot ser un senyal de presència massiva d'adaptadors o baixa diversitat genètica.
+Examines the proportion of the four bases (A, T, C, G) along the length of the read.
+* **Interpretation:** Under optimal conditions, the graph should show parallel and stable lines. It is normal to observe a "zigzag" pattern in the first 10-12 bases due to the *random primers* from Illumina. If the lines do not stabilize beyond base 15, it may be a sign of massive adapter presence or low genetic diversity.
 
 #### 4. Adapter Content
-Detecta fragments d'ADN artificial (adaptadors) utilitzats durant la preparació de la biblioteca.
-* **Interpretació:** Qualsevol corba ascendent en aquest mòdul indica que haurem de realitzar un filtratge amb Trimmmatic. La presència d'aquests elements sol produir-se quan el fragment d'ADN és més curt que el nombre de cicles de seqüenciació, provocant que la màquina llegeixi part del material artificial. És crucial eliminar-los completament; fins i tot una presència mínima podria confondre l'assemblador MEGAHIT, portant-lo a unir seqüències artificials i crear genomes "quimèrics" o inexistents que invalidarien els resultats.
+Detects synthetic DNA fragments (adapters) used during library preparation in the lab.
+* **Interpretation:** Any ascending curve in this module indicates that we must perform filtering with Trimmomatic. The presence of these elements usually occurs when the DNA fragment is shorter than the number of sequencing cycles, causing the machine to read part of the artificial material. It is crucial to remove them completely; even a minimal presence could confuse the MEGAHIT assembler, leading it to join artificial sequences and create "chimeric" or non-existent genomes that would invalidate the results.
+
 ---
 
-## Etapa 2: Filtratge (Trimmomatic)
+## Stage 2: Filtering (Trimmomatic)
 
-Un cop avaluada la qualitat inicial amb **FastQC**, la segona fase del *pipeline* se centra en el pre-processament. Per a aquesta tasca s'ha emprat **Trimmomatic v0.39**, una eina especialitzada en l'eliminació d'artefactes de seqüenciació i la neteja de bases de baixa fiabilitat. L'objectiu és evitar la introducció d'errors durant l'assemblatge *de novo* en etapes posteriors.
+Once the initial quality has been evaluated with **FastQC**, the second phase of the pipeline focuses on pre-processing. For this task, **Trimmomatic v0.39** has been used, a tool specialized in removing sequencing artifacts and cleaning low-reliability bases. The goal is to avoid introducing errors during *de novo* assembly in later stages.
 
 ### Script
-L'eficiència de l'script `scripts/trimmo_ruben.sh` rau en la implementació d'un **bucle `for`**, que permet processar de forma iterativa i automatitzada les 5 mostres del projecte. L'script identifica automàticament cada parella de fitxers (R1 i R2) i executa Trimmomatic en mode **PE (Paired-End)**. Aquest mode avalua ambdues lectures simultàniament per prendre decisions coordinades sobre la integritat del fragment.
+The efficiency of the `scripts/trimmo_ruben.sh` script lies in the implementation of a **`for` loop**, which allows for the iterative and automated processing of the 5 samples in the project. The script automatically identifies each pair of files (R1 and R2) and executes Trimmomatic in **PE (Paired-End)** mode. This mode evaluates both reads simultaneously to make coordinated decisions regarding the integrity of the fragment.
 
-Un punt crític en aquesta etapa és la selecció correcta de la seqüència d'adaptadors. Per a aquest pipeline, s'ha verificat la ruta específica dins de l'entorn de treball per utilitzar el fitxer d'adaptadors **Nextera**.
+A critical point at this stage is the correct selection of the adapter sequence. For this pipeline, the specific path within the working environment has been verified to use the **Nextera** adapter file.
 
-* **Ruta de l'adaptador:** `/opt/ohpc/pub/utils/miniconda3/envs/shotgun1/share/trimmomatic-0.40-0/adapters/NexteraPE-PE.fa`
+* **Adapter Path:** `/opt/ohpc/pub/utils/miniconda3/envs/shotgun1/share/trimmomatic-0.40-0/adapters/NexteraPE-PE.fa`
 
-### Paràmetres de Filtratge
-S'han definit els següents mòduls per garantir la puresa de les dades abans de l'assemblatge:
+### Filtering Parameters
+The following modules have been defined to ensure data purity before assembly:
 
-| Paràmetre | Descripció Tècnica |
+| Parameter | Technical Description |
 | :--- | :--- |
-| **ILLUMINACLIP:NexteraPE-PE.fa:2:30:10** | Eliminació d'adaptadors Nextera. S'utilitza un llindar de **2** *mismatches* i puntuacions de **30** (palíndrom) i **10** (simple) per evitar falsos positius. |
-| **LEADING:3** / **TRAILING:3** | Retalla les bases dels extrems (inici i final) si la seva qualitat és inferior a un **Phred score de 3**. |
-| **SLIDINGWINDOW:4:15** | Filtre dinàmic que analitza la lectura en finestres de 4 bases. Si la qualitat mitjana del segment cau per sota de **15**, la lectura es talla en aquest punt. |
-| **MINLEN:36** | Qualsevol lectura que, després de la curació, tingui una longitud inferior a **36 bases** és descartada per evitar ambigüitats en l'assemblatge. |
+| **ILLUMINACLIP:NexteraPE-PE.fa:2:30:10** | Nextera adapter removal. A threshold of **2** mismatches and scores of **30** (palindrome) and **10** (simple) are used to avoid false positives. |
+| **LEADING:3** / **TRAILING:3** | Trims bases from the ends (start and finish) if their quality is lower than a **Phred score of 3**. |
+| **SLIDINGWINDOW:4:15** | Dynamic quality filter. It analyzes the read in 4-base windows and trims it if the average quality of the segment falls below **15**. |
+| **MINLEN:36** | Establishes that any read that, after curation, has a length shorter than **36 bases** is discarded to avoid ambiguities during assembly. |
 
-### Resultats
-Com a producte d'aquest processament, el programa genera quatre fluxos de dades per cada mostra.
+### Results
+As a result of this processing, the program generates four data streams for each sample.
 
-* **Paired (R1/R2):** Ambdós membres han superat els controls de qualitat. Seran les dades que utilitzarem.
-* **Unpaired (R1/R2):** Només un membre de la parella ha superat els filtres. Es descarten.
-
-
----
-
-## Etapa 3: Eliminació de l'ADN de l'Hoste (Bowtie2)
-
-Tot i que l'objectiu de l'estudi és el microbioma intestinal, les mostres fecals contenen una fracció variable d'ADN procedent de les cèl·lules del pacient (hoste). Per poder analitzar exclusivament el contingut microbià, cal filtrar aquestes lectures humanes.
-
-### 3.1. Indexació del Genoma de Referència
-Abans de realitzar el filtratge, és imprescindible "preparar" el genoma humà perquè l'ordinador pugui processar-lo de manera eficient. El fitxer original del genoma és un llistat massiu de milers de milions de caràcters que no permet una cerca directa. Si haguéssim de buscar cada lectura dins del fitxer de text pla, el procés trigaria setmanes i requeriria una quantitat de memòria RAM inabastable.
-
-L'script `index.sh` executa la comanda `bowtie2-build`, la qual comprimeix el genoma i l'organitza en una estructura de dades optimitzada:
-
-* **Input:** `GCF_000001405.40_GRCh38.p14_genomic.fna`. És el genoma de referència humà complet.
-* **Output:** `GRCh38_index`. Un conjunt de 6 fitxers amb extensió `.bt2`. Aquests fitxers contenen el genoma indexat, una base de dades comprimida a punt per a l'alineament d'alta velocitat.
-
-Aquest pas logístic és el que permet que la següent fase d'eliminació de l'ADN humà sigui viable a nivell computacional, transformant un volum de dades gegantí en una eina de cerca àgil.
-
-
-### 3.2. Funcionament de Bowtie2
-
-Per a la descontaminació, s'utilitza l'alineador **Bowtie2 v2.4.2** comparant les lectures filtrades contra el genoma de referència humà (**GRCh38**). L'estratègia es basa en: qualsevol lectura que s'alineï amb el genoma humà es descarta, mentre que les lectures que no troben coincidència (*unmapped*) s'identifiquen com d'origen microbià i es conserven.
-
-L'script `scripts/bowtie2_ruben.sh` automatitza aquest procés en quatre fases:
-
-#### 1. Alineament d'Alta Sensibilitat
-S'executa `bowtie2` amb el paràmetre `--very-sensitive`. Aquesta configuració és vital per maximitzar la detecció de fragments d'ADN humà, inclús aquells amb petites variacions genètiques respecte a la referència.
-
-#### 2. Optimització de Formats
-L'alineament genera fitxers **SAM** (text pla), que són extremadament voluminosos. Mitjançant **samtools**, convertim aquestes dades a format **BAM** (binari comprimit) i les ordenem. Aquest pas estalvia espai al clúster i és un requisit tècnic per realitzar cerques i filtratges eficients.
-
-#### 3. Filtratge Selectiu per "Flags"
-Aquest és el pas decisiu del procés. Utilitzem la comanda `samtools view` amb els següents *flags* (codis numèrics):
-* **`-f 12`**: Filtre que garanteix l'extracció exclusiva de les parelles on **ni la R1 ni la R2 han alineat** contra el genoma humà.
-* **`-F 256`**: Evita l'extracció d'alineaments secundaris. A vegades, una lectura podria semblar que encaixa en dos llocs diferents del genoma humà. El programa tria el millor (primari) i marca l'altre com a secundari (256).
-
-#### 4. Restauració al format FASTQ
-Finalment, les dades filtrades (que ja només contenen informació microbiana) es converteixen de nou al format original **FASTQ comprimit (.gz)**. 
-
-
-### Resultat Final
-Els fitxers resultants, anomenats `_nonhuman_R1.fastq.gz` i `_nonhuman_R2.fastq.gz`, representen les nostres **dades pures**.
+* **Paired (R1/R2):** Both members have passed quality controls. These will be the data we use.
+* **Unpaired (R1/R2):** Only one member of the pair has passed the filters. They are discarded.
 
 ---
 
-## Etapa 4: Assemblatge de Genomes *de novo* (MEGAHIT)
+## Stage 3: Host DNA Removal (Bowtie2)
 
-### Per què fem l'assemblatge?
+Although the goal of the study is the gut microbiome, fecal samples contain a variable fraction of DNA coming from the patient's cells (host). To analyze the microbial content exclusively, these human reads must be filtered out.
 
-Fins ara, el nostre *pipeline* ens ha proporcionat milions de lectures curtes (*reads*) netes. Tanmateix, aquestes lectures són fragments aleatoris i petits que, per si sols, no ens donen una visió completa de la biologia de la mostra.
+### 3.1. Reference Genome Indexing
+Before performing the filtering, it is essential to "prepare" the human genome so the computer can process it efficiently. The original genome file is a massive list of billions of characters that does not allow for efficient direct searching. If we had to search each read within the plain text file of the human genome, the process would take weeks and require an impossible amount of RAM.
 
-Necessitem fer aquest pas perquè la majoria de gens que busquem són molt més llargs que una simple lectura. L'assemblatge ens permet reconstruir les seqüències genòmiques originals per poder identificar quins bacteris estan presents i quines capacitats metabòliques tenen.
+The `index.sh` script executes the `bowtie2-build` command, which compresses the genome and organizes it into an optimized data structure:
+
+* **Input:** `GCF_000001405.40_GRCh38.p14_genomic.fna`. This is the complete human reference genome.
+* **Output:** `GRCh38_index`. A set of 6 files with the `.bt2` extension. These files contain the indexed genome, a compressed database ready for high-speed alignment.
+
+This logistical step allows the next phase of human DNA removal to be computationally viable, transforming a massive volume of data into an agile search tool.
+
+### 3.2. Bowtie2 Operation
+
+For decontamination, the **Bowtie2** aligner is used, comparing our filtered reads against the human reference genome (**GRCh38**). The strategy is based on: any read that aligns with the human genome is discarded, while reads that do not find a match (*unmapped*) are identified as microbial in origin and kept.
+
+The `scripts/bowtie2.sh` script automates this process in four phases:
+
+#### 1. High-Sensitivity Alignment
+`bowtie2` is executed with the `--very-sensitive` parameter. This configuration is vital to maximize the detection of human DNA fragments, even those with small genetic variations relative to the reference.
 
 
-### Com funciona l'assemblatge *de novo*?
-Com que estem analitzant mostres ambientals (metagenòmica de femta), no sabem exactament quins bacteris hi ha; per tant, no podem fer servir un "motlle" o referència. Realitzem un assemblatge ***de novo*** (des de zero) seguint aquests passos:
 
-* **Trossejament en *k-mers*:** El programa divideix les lectures en fragments encara més petits anomenats *k-mers*.
-* **Connexió per solapament:** Si dos *k-mers* són idèntics, l'ordinador entén que provenen del mateix fragment d'ADN i els connecta.
-* **Construcció de *Contigs*:** Seguint aquestes connexions, l'algorisme construyeix seqüències contínues cada cop més llargues anomenades **contigs**.
+#### 2. Format Optimization
+The alignment generates **SAM** files (plain text), which are extremely bulky. Using **samtools**, we convert these data to **BAM** format (compressed binary) and sort them. This step saves space on the cluster and is a technical requirement for efficient searching and filtering.
+
+#### 3. Selective Filtering by "Flags"
+This is the decisive step of the process. We use the `samtools view` command with the following *flags* (numeric codes):
+* **`-f 12`**: Filter that guarantees the exclusive extraction of pairs where **neither R1 nor R2 have aligned** against the human genome.
+* **`-F 256`**: Avoids the extraction of secondary alignments. Sometimes, a read might seem to fit in two different places in the human genome. The program chooses the best (primary) and marks the other as secondary (256).
+
+#### 4. Restoration to FASTQ format
+Finally, the filtered data (which now contain only microbial information) are converted back to the original **compressed FASTQ (.gz)** format. 
+
+### Final Result
+The resulting files, named `_nonhuman_R1.fastq.gz` and `_nonhuman_R2.fastq.gz`, represent our **pure data**.
+
+---
+
+## Stage 4: *de novo* Genome Assembly (MEGAHIT)
+
+The script used was `scripts/megahit.sh`.
+
+### Why do we perform the assembly?
+
+So far, our pipeline has provided us with millions of clean short reads. However, these reads are small, random fragments that, by themselves, do not give us a complete view of the sample's biology.
+
+We need to perform this step because most of the genes we are looking for are much longer than a simple read. Assembly allows us to reconstruct the original genomic sequences to identify which bacteria are present and what metabolic capabilities they have.
+
+
+
+### How does *de novo* assembly work?
+Since we are analyzing environmental samples (fecal metagenomics), we do not know exactly which bacteria are there; therefore, we cannot use a "mold" or reference. We perform a ***de novo*** assembly (from scratch) following these steps:
+
+* **K-mer Slicing:** The program divides the reads into even smaller fragments called *k-mers*.
+* **Connection by Overlap:** If two k-mers are identical, the computer understands they come from the same DNA fragment and connects them.
+* **Contig Construction:** Following these connections, the algorithm builds increasingly longer continuous sequences called **contigs**.
