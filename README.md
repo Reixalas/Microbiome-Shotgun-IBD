@@ -40,7 +40,7 @@ S'ha utilitzat l'script `scripts/shotgunR.sh` per executar l'eina **FastQC** de 
 Aquest gràfic és el primer indicador de la fiabilitat tècnica. Utilitza diagrames de caixes (*boxplots*) per representar la qualitat en cada posició de la lectura.
 * **Interpretació:** L'eix vertical representa el Phred Score (Q), una escala logarítmica que ens indica la probabilitat d'error en la identificació de cada nucleòtid. L'objectiu és que la pràctica totalitat de la lectura es mantingui dins de la zona verda. Si les "caixes" o les línies de mitjana cauen cap a la zona groga (alerta) o vermella (mala qualitat), la probabilitat que les lletres assignades siguin incorrectes augmenta exponencialment. Les màquines de seqüenciació solen perdre qualitat a mesura que avancen cap al final de la lectura. Si aquest gràfic mostra una degradació final, utilitzarem aquesta informació per definir el punt de tall en l'etapa de trimming.
 
-#### 2. Per Sequence GC Content (La signatura genòmica)
+#### 2. Per Sequence GC Content 
 Mesura la proporció de Guanina i Citosina, actuant com una "empremta dactilar" de la comunitat microbiana.
 * **Interpretació:** Aquest mòdul mesura la proporció de Guanina i Citosina en cada lectura i ens ofereix una visió global de la composició genòmica de la mostra. En una mostra de microbioma intestinal complex, el gràfic ha de mostrar una distribució suau que s'aproximi a una campana de Gauss. Això es deu al fet que estem seqüenciant centenars d'espècies bacterianes diferents, cadascuna amb el seu propi percentatge de GC; la superposició de tots aquests genomes crea una corba normalitzada. 
 
@@ -48,7 +48,7 @@ Mesura la proporció de Guanina i Citosina, actuant com una "empremta dactilar" 
 Examina la proporció de les quatre bases (A, T, C, G) al llarg de la lectura.
 * **Interpretació:** En condicions òptimes, el gràfic ha de mostrar línies paral·leles i estables. És normal observar un patró de "ziga-zaga" en les primeres 10-12 bases a causa dels *random primers* d'Illumina. Si les línies no s'estabilitzen més enllà de la base 15, pot ser un senyal de presència massiva d'adaptadors o baixa diversitat genètica.
 
-#### 5. Adapter Content (Presència d'ADN sintètic)
+#### 4. Adapter Content
 Detecta fragments d'ADN artificial (adaptadors) utilitzats durant la preparació de la biblioteca.
 * **Interpretació:** Qualsevol corba ascendent en aquest mòdul indica que haurem de realitzar un filtratge amb Trimmmatic. La presència d'aquests elements sol produir-se quan el fragment d'ADN és més curt que el nombre de cicles de seqüenciació, provocant que la màquina llegeixi part del material artificial. És crucial eliminar-los completament; fins i tot una presència mínima podria confondre l'assemblador MEGAHIT, portant-lo a unir seqüències artificials i crear genomes "quimèrics" o inexistents que invalidarien els resultats.
 
