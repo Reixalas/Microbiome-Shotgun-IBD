@@ -68,8 +68,8 @@ The following modules have been defined to ensure data purity before assembly:
 | Parameter | Technical Description |
 | :--- | :--- |
 | **ILLUMINACLIP:NexteraPE-PE.fa:2:30:10** | Nextera adapter removal. A threshold of 2 mismatches and scores of 30 (palindrome) and 10 (simple) are used to avoid false positives. |
-| **LEADING:3** / **TRAILING:3** | Trims bases from the ends (start and finish) if their quality is lower than a **Phred score of 3**. |
-| **SLIDINGWINDOW:4:15** | Dynamic quality filter. It analyzes the read in 4-base windows and trims it if the average quality of the segment falls below **15**. |
+| **LEADING:3** / **TRAILING:3** | Trims bases from the ends (start and finish) if their quality is lower than a Phred score of 3. |
+| **SLIDINGWINDOW:4:15** | Dynamic quality filter. It analyzes the read in 4-base windows and trims it if the average quality of the segment falls below 15. |
 | **MINLEN:36** | Establishes that any read that, after curation, has a length shorter than 36 bases is discarded to avoid ambiguities during assembly. |
 
 ### Results
