@@ -1,6 +1,6 @@
 # Shotgun Metagenomics Analysis of IBD Samples
 
-This repository contains the bioinformatics analysis pipeline for processing shotgun metagenomics samples from the study by **Lee et al. (2021)**, published in *Cell Host & Microbe*. The primary objective of the analysis is the study of the gut microbiome in patients with Inflammatory Bowel Disease (IBD). Due to the high data load, an optimized processing strategy has been implemented in batches of 5 samples.
+This repository contains the bioinformatics analysis pipeline for processing shotgun metagenomics samples from the study by **Lee et al. (2021)**, published in *Cell Host & Microbe*. The primary objective of the analysis is the study of the gut microbiome in patients with Inflammatory Bowel Disease. Due to the high data load, an optimized processing strategy has been implemented in batches of 5 samples.
 
 
 
@@ -26,7 +26,7 @@ Before executing any stage of the pipeline, it is essential to ensure that the s
 
 ## Stage 1: Quality Control (FastQC)
 
-Before performing any biological inference, it is indispensable to validate the technical integrity and reliability of the raw sequencing data.
+Before performing any biological inference, it is indispensable to validate the technical reliability of the raw sequencing data.
 The script `scripts/shotgunR.sh` has been used to execute the FastQC tool. This process analyzes the read files (`.fastq.gz`) and generates diagnostic reports based on four key metrics:
 
 ---
@@ -106,8 +106,6 @@ The `scripts/bowtie2.sh` script automates this process in four phases:
 #### 1. High-Sensitivity Alignment
 `bowtie2` is executed with the `--very-sensitive` parameter. This configuration is vital to maximize the detection of human DNA fragments, even those with small genetic variations relative to the reference.
 
-
-
 #### 2. Format Optimization
 The alignment generates SAM files (plain text), which are extremely bulky. Using samtools, we convert these data to BAM format (compressed binary) and sort them. This step saves space on the cluster and is a technical requirement for efficient searching and filtering.
 
@@ -137,7 +135,7 @@ We need to perform this step because most of the genes we are looking for are mu
 
 
 ### How does *de novo* assembly work?
-Since we are analyzing environmental samples (fecal metagenomics), we do not know exactly which bacteria are there; therefore, we cannot use a "mold" or reference. We perform a de novo assembly following these steps:
+Since we are analyzing environmental samples (fecal metagenomics), we do not know exactly which bacteria are there; therefore, we cannot use any reference. We perform a de novo assembly following these steps:
 
 * **K-mer Slicing:** The program divides the reads into even smaller fragments called k-mers.
 * **Connection by Overlap:** If two k-mers are identical, the computer understands they come from the same DNA fragment and connects them.
