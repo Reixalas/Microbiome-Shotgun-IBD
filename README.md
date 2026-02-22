@@ -66,48 +66,36 @@ Com a resultat d'aquest processament, Trimmomatic genera quatre fluxos de dades 
 
 ## Etapa 3: Eliminació de l'ADN de l'Hoste (Bowtie2)
 
-Tot i que l'objectiu de l'estudi és el microbioma, les mostres fecals contenen una fracció variable d'ADN procedent de les cèl·lules del pacient (hoste). Aquesta etapa és crucial per "netejar" digitalment la mostra i quedar-nos només amb la informació microbiana.
+Tot i que l'objectiu de l'estudi és el microbioma, les mostres fecals contenen una fracció variable d'ADN procedent de les cèl·lules del pacient (hoste). Abans de poder filtrar l'ADN de l'hoste, és imprescindible "preparar" el genoma humà perquè l'ordinador pugui treballar amb ell. El fitxer original del genoma és un llistat massiu de milers de milions de caràcters que no permet una cerca directa eficient. Per això, utilitzem Bowtie2 per crear un índex. Si haguéssim de buscar cada lectura, una per una, dins del fitxer de text del genoma humà, el procés trigaria setmanes i requeriria una quantitat de memòria RAM impossible de gestionar.
 
-### En què consisteix aquest procés?
-Utilitzem l'alineador **Bowtie2 v2.4.2** per comparar totes les nostres lectures filtrades contra el genoma de referència humà (**GRCh38**).
+L'script index.sh executa la comanda bowtie2-build, comprimeix el genoma i l'organitza en una estructura de dades optimitzada.
 
-1. **Mapeig contra l'humà:** El programa intenta "enganxar" cada lectura al genoma humà.
-2. **Separació de lectures:**
-   - Si una lectura coincideix amb el genoma humà, es descarta.
-   - Si una lectura **NO** coincideix, significa que el seu origen és microbià (bacteris, virus o fongs).
-3. **Extracció de dades netes:** Ens quedem exclusivament amb les lectures que no han alineat amb l'humà per a les anàlisis posteriors.
+Input (La matèria bruta): GCF_000001405.40_GRCh38.p14_genomic.fna. És el genoma de referència humà complet, un fitxer de text pla molt pesat.
 
-## 🗂️ Etapa 2.5: Creació de l'Índex del Genoma Humà
+Output (L'eina de cerca): GRCh38_index. Un conjunt de 6 fitxers amb extensió .bt2. Aquests fitxers contenen el genoma comprimit i "indexat", a punt per ser utilitzat com a base per a l'alineament.
 
-Abans de procedir a l'eliminació de les lectures de l'hoste, cal preparar el genoma de referència. El programa **Bowtie2** no treballa directament amb fitxers FASTA de seqüència bruta, sinó que requereix un format d'índex optimitzat per a la cerca ràpida.
+És el pas logístic que converteix una base de dades gegant en una eina de cerca d'alta velocitat, permetent que el pas següent (l'eliminació de l'ADN humà) sigui viable a nivell computacional.
 
-### 🛠️ Què fa aquest script?
-L'script `index.sh` executa la comanda `bowtie2-build`. Aquest procés agafa el genoma de referència humà (**GRCh38.p14**) i el transforma en una estructura de dades anomenada *Burrows-Wheeler Transform* (BWT).
 
-* **Input:** `GCF_000001405.40_GRCh38.p14_genomic.fna` (El fitxer amb tota la seqüència de l'ADN humà).
-* **Output:** `GRCh38_index` (Un conjunt de 6 fitxers petits amb extensió `.bt2`).
+Per a aquesta descontaminació, utilitzem l'alineador Bowtie2 v2.4.2 comparant les nostres lectures filtrades contra el genoma de referència humà (GRCh38). L'estratègia es basa en un principi d'exclusió: qualsevol lectura que s'alineï amb el genoma humà es descarta, mentre que les lectures que no troben coincidència (lectures unmapped) s'identifiquen com d'origen microbià i es conserven per a l'assemblatge.
 
-## 🧬 Etapa 3: Eliminació de l'ADN de l'Hoste (Bowtie2 + Samtools)
+L'script scripts/bowtie2_ruben.sh automatitza aquest procés en quatre fases clau:
 
-Un cop les dades estan netes de seqüències de mala qualitat, el següent pas crític en metagenòmica clínica és l'eliminació de les lectures procedents de l'hoste (humà). Aquest procés garanteix que les anàlisis posteriors es basin exclusivament en el microbioma.
+1. Alineament d'Alta Sensibilitat
+S'executa la comanda bowtie2 utilitzant el paràmetre --very-sensitive. Aquesta configuració és vital per maximitzar la probabilitat de detectar qualsevol fragment d'ADN humà, fins i tot aquells que presentin petites variacions genètiques o mutacions respecte a la referència. L'objectiu és ser extremadament rigorosos per no arrossegar contaminació humana a les etapes posteriors.
 
-### 🛠️ Lògica del Pipeline d'Alineament
-L'script `bowtie2.sh` executa un flux de treball de quatre passos per a cadascuna de les 114 mostres:
+2. Processament i Optimització de Formats
+L'alineament genera fitxers en format SAM, que són fitxers de text pla extremadament voluminosos. Mitjançant samtools, convertim aquestes dades a format BAM (binari comprimit) i les ordenem. Aquest pas no només estalvia espai de disc en el clúster, sinó que és un requisit tècnic perquè el programari pugui realitzar cerques i filtratges de manera eficient.
 
-#### 1. Alineament amb Bowtie2
-* **Comanda:** `bowtie2 -x GRCh38_index --very-sensitive`
-* **Què fa?** Compara les nostres lectures contra l'índex del genoma humà creat prèviament. L'opció `--very-sensitive` s'utilitza per maximitzar la probabilitat de trobar qualsevol fragment d'ADN humà, encara que tingui petites variacions.
+3. Filtratge Selectiu per "Flags"
+Aquest és el pas decisiu del procés. Utilitzem la comanda samtools view amb els codis numèrics o flags següents:
 
-#### 2. Processament amb Samtools (BAM i Ordenació)
-* **Què fa?** El resultat de Bowtie2 és un fitxer `.sam` (molt gran). Utilitzem `samtools` per convertir-lo a `.bam` (format binari comprimit) i ordenar-lo. Això és necessari perquè l'ordinador pugui filtrar les dades de manera eficient.
+-f 12: Aquest filtre garanteix que extreurem exclusivament les parelles de lectures on ni la R1 ni la R2 han alineat contra el genoma humà.
 
-#### 3. Filtratge de lectures "no-humanes"
-* **Comanda:** `samtools view -f 12 -F 256`
-* **Què fa?** Aquest és el pas clau. Mitjançant *flags* (codis numèrics), demanem al programa que ens doni **només** les lectures que **NO** han alineat contra el genoma humà (lectures *unmapped*). 
-   - El flag `-f 12` extreu les parelles on ni la R1 ni la R2 han trobat coincidència amb l'humà.
+-F 256: S'utilitza per evitar l'extracció d'alineaments secundaris, assegurant que només treballem amb les dades primàries i úniques.
 
-#### 4. Recuperació del format FASTQ
-* **Què fa?** Finalment, convertim el fitxer de bacteris filtrats (`.bam`) de nou al format original (`.fastq.gz`). Aquests fitxers resultants (`_nonhuman_R1.fastq.gz`) són els que utilitzarem per a l'assemblatge final.
+4. Restauració al format FASTQ
+Finalment, les dades filtrades (que ara ja contenen només informació microbiana) es converteixen de nou al format original FASTQ comprimit (.gz). Aquests fitxers resultants, anomenats _nonhuman_R1.fastq.gz i _nonhuman_R2.fastq.gz, representen les nostres "dades netes" i definitives, llistes per ser utilitzades en la reconstrucció de l'operó bai mitjançant l'assemblatge de genomes.
 
 ## 🧩 Etapa 4: Assemblatge de Genomes *de novo* (MEGAHIT)
 
