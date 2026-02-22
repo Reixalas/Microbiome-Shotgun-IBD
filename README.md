@@ -58,6 +58,10 @@ Un cop avaluada la qualitat inicial amb **FastQC**, la segona fase del *pipeline
 ### Script
 L'eficiència de l'script `scripts/trimmo_ruben.sh` rau en la implementació d'un **bucle `for`**, que permet processar de forma iterativa i automatitzada les 5 mostres del projecte. L'script identifica automàticament cada parella de fitxers (R1 i R2) i executa Trimmomatic en mode **PE (Paired-End)**. Aquest mode avalua ambdues lectures simultàniament per prendre decisions coordinades sobre la integritat del fragment.
 
+Un punt crític en aquesta etapa és la selecció correcta de la seqüència d'adaptadors. Per a aquest pipeline, s'ha verificat la ruta específica dins de l'entorn de treball per utilitzar el fitxer d'adaptadors **Nextera**.
+
+* **Ruta de l'adaptador:** `/opt/ohpc/pub/utils/miniconda3/envs/shotgun1/share/trimmomatic-0.40-0/adapters/NexteraPE-PE.fa`
+
 ### Paràmetres de Filtratge
 S'han definit els següents mòduls per garantir la puresa de les dades abans de l'assemblatge:
 
