@@ -1,10 +1,32 @@
-# Shotgun metagenomics analysis of IBD samples
+# Shotgun Metagenomics Analysis of IBD Samples
 
-Aquest repositori conté el pipeline d’anàlisi de 114 mostres de metagenòmica shotgun procedents de l’estudi de Lee et al. (2021, Cell Host & Microbe). Atesa la gran quantitat de dades i l'elevat cost computacional de l'anàlisi metagenòmica (especialment en la fase d'assemblatge), s'ha optat per processar les mostres en **blocs de 5 en 5**. Les lectures s’han processat amb un flux de treball que inclou FastQC, trimming, alineament amb Bowtie2 i assemblatge amb MEGAHIT.
+Aquest repositori conté el *pipeline* d’anàlisi bioinformàtica per al processament de **114 mostres** de metagenòmica *shotgun* procedents de l’estudi de **Lee et al. (2021)**, publicat a *Cell Host & Microbe*. 
+
+L'objectiu principal de l'anàlisi és l'estudi del microbioma intestinal en pacients amb Malaltia Inflamatòria Intestinal (IBD). Atesa la gran càrrega de dades, s'ha implementat una estratègia de processament optimitzada en **blocs de 5 mostres**. 
+
+
+
+---
 
 ## Disponibilitat de les dades
-Les dades de seqüenciació crues utilitzades en aquest projecte estan disponibles a la base de dades **NCBI Sequence Read Archive (SRA)** sota l'identificador de BioProject:
-* **BioProject ID:** [PRJNA685168](https://www.ncbi.nlm.nih.gov/bioproject/?term=PRJNA685168).
+
+Les dades de seqüenciació crues utilitzades en aquest projecte estan dipositades a la base de dades **NCBI Sequence Read Archive (SRA)**. Es poden consultar i descarregar mitjançant l'identificador de BioProject:
+
+* **BioProject ID:** [PRJNA685168](https://www.ncbi.nlm.nih.gov/bioproject/?term=PRJNA685168)
+
+---
+
+## Preparació de l'Entorn Computacional
+
+Abans d'executar qualsevol etapa del *pipeline*, cal assegurar que el programari estigui correctament activat i configurat per treballar al clúster. Per fer-ho, se segueix aquest protocol:
+
+* **`module load miniconda3`**: Habilita el gestor de paquets Conda al sistema. 
+* **`source ~/.bashrc`**: Actualitza i refresca la configuració del terminal.
+* **`conda activate shotgun1`** (o `megahit` segons l'etapa): Activa l'entorn virtual on resideixen les eines específiques (MEGAHIT, Bowtie2, Samtools, etc.).
+
+
+
+---
 
 ## Etapa 1: Control de Qualitat (FastQC)
 
