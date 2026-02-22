@@ -1,8 +1,8 @@
 #!/bin/bash
 
-#SBATCH --job-name=megahit_ruben
-#SBATCH --output=megahit_ruben.%j.out
-#SBATCH --error=megahit_ruben.%j.err
+#SBATCH --job-name=megahit_R
+#SBATCH --output=megahit_R.%j.out
+#SBATCH --error=megahit_R.%j.err
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=32G
 
