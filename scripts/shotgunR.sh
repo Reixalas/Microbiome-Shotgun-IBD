@@ -1,8 +1,8 @@
 #! /bin/bash
 
-#SBATCH --job-name=shotgun				# Job name
-#SBATCH --output=shotgun.%j.out		# Name of stdout output file (%j expands to %jobId)
-#SBATCH --error=shotgun.%j.err		# Name of stdout output file (%j expands to %jobId)
+#SBATCH --job-name=shotgun_R				# Job name
+#SBATCH --output=shotgun_R.%j.out		# Name of stdout output file (%j expands to %jobId)
+#SBATCH --error=shotgun_R.%j.err		# Name of stdout output file (%j expands to %jobId)
 #SBATCH --cpus-per-task=4			# Specifies that the job requires 6 CPUs
 #SBATCH --mem=32G				# Specifies that the job requires 48 gigabytes of memory.
 
