@@ -49,6 +49,7 @@ Examina la proporció de les quatre bases (A, T, C, G) al llarg de la lectura.
 #### 4. Adapter Content
 Detecta fragments d'ADN artificial (adaptadors) utilitzats durant la preparació de la biblioteca.
 * **Interpretació:** Qualsevol corba ascendent en aquest mòdul indica que haurem de realitzar un filtratge amb Trimmmatic. La presència d'aquests elements sol produir-se quan el fragment d'ADN és més curt que el nombre de cicles de seqüenciació, provocant que la màquina llegeixi part del material artificial. És crucial eliminar-los completament; fins i tot una presència mínima podria confondre l'assemblador MEGAHIT, portant-lo a unir seqüències artificials i crear genomes "quimèrics" o inexistents que invalidarien els resultats.
+---
 
 ## Etapa 2: Filtratge (Trimmomatic)
 
@@ -73,20 +74,22 @@ Com a producte d'aquest processament, el programa genera quatre fluxos de dades 
 * **Paired (R1/R2):** Ambdós membres han superat els controls de qualitat. Seran les dades que utilitzarem.
 * **Unpaired (R1/R2):** Només un membre de la parella ha superat els filtres. Es descarten.
 
----
 
+---
 
 ## Etapa 3: Eliminació de l'ADN de l'Hoste (Bowtie2)
 
-Tot i que l'objectiu de l'estudi és el microbioma, les mostres fecals contenen una fracció variable d'ADN procedent de les cèl·lules del pacient (hoste). Abans de poder filtrar l'ADN de l'hoste, és imprescindible "preparar" el genoma humà perquè l'ordinador pugui treballar amb ell. El fitxer original del genoma és un llistat massiu de milers de milions de caràcters que no permet una cerca directa eficient. Per això, utilitzem Bowtie2 per crear un índex. Si haguéssim de buscar cada lectura, una per una, dins del fitxer de text del genoma humà, el procés trigaria setmanes i requeriria una quantitat de memòria RAM impossible de gestionar.
+Tot i que l'objectiu de l'estudi és el microbioma intestinal, les mostres fecals contenen una fracció variable d'ADN procedent de les cèl·lules del pacient (hoste). Per poder analitzar exclusivament el contingut microbià, cal filtrar aquestes lectures humanes.
 
-L'script index.sh executa la comanda bowtie2-build, comprimeix el genoma i l'organitza en una estructura de dades optimitzada.
+### 3.1. Indexació del Genoma de Referència
+Abans de realitzar el filtratge, és imprescindible "preparar" el genoma humà perquè l'ordinador pugui processar-lo de manera eficient. El fitxer original del genoma és un llistat massiu de milers de milions de caràcters que no permet una cerca directa. Si haguéssim de buscar cada lectura dins del fitxer de text pla, el procés trigaria setmanes i requeriria una quantitat de memòria RAM inabastable.
 
-Input (La matèria bruta): GCF_000001405.40_GRCh38.p14_genomic.fna. És el genoma de referència humà complet, un fitxer de text pla molt pesat.
+L'script `index.sh` executa la comanda `bowtie2-build`, la qual comprimeix el genoma i l'organitza en una estructura de dades optimitzada:
 
-Output (L'eina de cerca): GRCh38_index. Un conjunt de 6 fitxers amb extensió .bt2. Aquests fitxers contenen el genoma comprimit i "indexat", a punt per ser utilitzat com a base per a l'alineament.
+* **Input:** `GCF_000001405.40_GRCh38.p14_genomic.fna`. És el genoma de referència humà complet.
+* **Output:** `GRCh38_index`. Un conjunt de 6 fitxers amb extensió `.bt2`. Aquests fitxers contenen el genoma indexat, una base de dades comprimida a punt per a l'alineament d'alta velocitat.
 
-És el pas logístic que converteix una base de dades gegant en una eina de cerca d'alta velocitat, permetent que el pas següent (l'eliminació de l'ADN humà) sigui viable a nivell computacional.
+Aquest pas logístic és el que permet que la següent fase d'eliminació de l'ADN humà sigui viable a nivell computacional, transformant un volum de dades gegantí en una eina de cerca àgil.
 
 
 Per a aquesta descontaminació, utilitzem l'alineador Bowtie2 v2.4.2 comparant les nostres lectures filtrades contra el genoma de referència humà (GRCh38). L'estratègia es basa en un principi d'exclusió: qualsevol lectura que s'alineï amb el genoma humà es descarta, mentre que les lectures que no troben coincidència (lectures unmapped) s'identifiquen com d'origen microbià i es conserven per a l'assemblatge.
