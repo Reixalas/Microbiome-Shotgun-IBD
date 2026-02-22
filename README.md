@@ -1,8 +1,6 @@
 # Shotgun Metagenomics Analysis of IBD Samples
 
-This repository contains the bioinformatics analysis pipeline for processing **114 shotgun metagenomics samples** from the study by **Lee et al. (2021)**, published in *Cell Host & Microbe*. 
-
-The primary objective of the analysis is the study of the gut microbiome in patients with Inflammatory Bowel Disease (IBD). Due to the high data load, an optimized processing strategy has been implemented in **batches of 5 samples**.
+This repository contains the bioinformatics analysis pipeline for processing **shotgun metagenomics samples** from the study by **Lee et al. (2021)**, published in *Cell Host & Microbe*. The primary objective of the analysis is the study of the gut microbiome in patients with Inflammatory Bowel Disease (IBD). Due to the high data load, an optimized processing strategy has been implemented in **batches of 5 samples**.
 
 
 
@@ -18,7 +16,7 @@ The raw sequencing data used in this project are deposited in the **NCBI Sequenc
 
 ## Computing Environment Setup
 
-Before executing any stage of the pipeline, it is essential to ensure that the software is correctly activated and configured to work on the cluster. To do so, the following protocol is followed:
+Before executing any stage of the pipeline, it is essential to ensure that the software is correctly activated to work on the cluster. To do so, the following protocol is followed:
 
 * **`module load miniconda3`**: Enables the Conda package manager on the system.
 * **`source ~/.bashrc`**: Updates and refreshes the terminal configuration.
@@ -29,7 +27,7 @@ Before executing any stage of the pipeline, it is essential to ensure that the s
 ## Stage 1: Quality Control (FastQC)
 
 Before performing any biological inference, it is indispensable to validate the **technical integrity** and reliability of the raw sequencing data.
-The script `scripts/shotgunR.sh` has been used to execute the **FastQC** tool in an automated manner. This process analyzes the read files (`.fastq.gz`) and generates diagnostic reports based on four key metrics:
+The script `scripts/shotgunR.sh` has been used to execute the **FastQC** tool. This process analyzes the read files (`.fastq.gz`) and generates diagnostic reports based on four key metrics:
 
 ---
 
@@ -55,10 +53,10 @@ Detects synthetic DNA fragments (adapters) used during library preparation in th
 
 ## Stage 2: Filtering (Trimmomatic)
 
-Once the initial quality has been evaluated with **FastQC**, the second phase of the pipeline focuses on pre-processing. For this task, **Trimmomatic v0.39** has been used, a tool specialized in removing sequencing artifacts and cleaning low-reliability bases. The goal is to avoid introducing errors during *de novo* assembly in later stages.
+Once the initial quality has been evaluated with **FastQC**, the second phase of the pipeline focuses on pre-processing. For this task, **Trimmomatic** has been used, a tool specialized in removing low-reliability bases. The goal is to avoid introducing errors during *de novo* assembly in later stages.
 
 ### Script
-The efficiency of the `scripts/trimmo_ruben.sh` script lies in the implementation of a **`for` loop**, which allows for the iterative and automated processing of the 5 samples in the project. The script automatically identifies each pair of files (R1 and R2) and executes Trimmomatic in **PE (Paired-End)** mode. This mode evaluates both reads simultaneously to make coordinated decisions regarding the integrity of the fragment.
+The efficiency of the `scripts/trimmomatic.sh` script lies in the implementation of a **`for` loop**, which allows for the iterative and automated processing of the 5 samples in the project. The script automatically identifies each pair of files (R1 and R2) and executes Trimmomatic in **PE (Paired-End)** mode. This mode evaluates both reads simultaneously to make coordinated decisions regarding the integrity of the fragment.
 
 A critical point at this stage is the correct selection of the adapter sequence. For this pipeline, the specific path within the working environment has been verified to use the **Nextera** adapter file.
 
@@ -80,6 +78,9 @@ As a result of this processing, the program generates four data streams for each
 * **Paired (R1/R2):** Both members have passed quality controls. These will be the data we use.
 * **Unpaired (R1/R2):** Only one member of the pair has passed the filters. They are discarded.
 
+#### Post-Trimming Validation
+To ensure that the filtering parameters were effective, a second quality assessment is mandatory. We utilized the script `scripts/paired_quality.sh` to automate a post-processing **FastQC** analysis.
+
 ---
 
 ## Stage 3: Host DNA Removal (Bowtie2)
@@ -87,7 +88,7 @@ As a result of this processing, the program generates four data streams for each
 Although the goal of the study is the gut microbiome, fecal samples contain a variable fraction of DNA coming from the patient's cells (host). To analyze the microbial content exclusively, these human reads must be filtered out.
 
 ### 3.1. Reference Genome Indexing
-Before performing the filtering, it is essential to "prepare" the human genome so the computer can process it efficiently. The original genome file is a massive list of billions of characters that does not allow for efficient direct searching. If we had to search each read within the plain text file of the human genome, the process would take weeks and require an impossible amount of RAM.
+Before performing the filtering, it is essential to "prepare" the human genome so the computer can process it efficiently. The original genome file is a massive list of billions of characters that does not allow for efficient direct searching. If we had to search each read within the plain text file of the human genome, the process would take weeks.
 
 The `index.sh` script executes the `bowtie2-build` command, which compresses the genome and organizes it into an optimized data structure:
 
