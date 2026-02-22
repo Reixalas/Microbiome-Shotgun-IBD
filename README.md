@@ -50,11 +50,9 @@ Examina la proporció de les quatre bases (A, T, C, G) al llarg de la lectura.
 Detecta fragments d'ADN artificial (adaptadors) utilitzats durant la preparació de la biblioteca.
 * **Interpretació:** Qualsevol corba ascendent en aquest mòdul indica que haurem de realitzar un filtratge amb Trimmmatic. La presència d'aquests elements sol produir-se quan el fragment d'ADN és més curt que el nombre de cicles de seqüenciació, provocant que la màquina llegeixi part del material artificial. És crucial eliminar-los completament; fins i tot una presència mínima podria confondre l'assemblador MEGAHIT, portant-lo a unir seqüències artificials i crear genomes "quimèrics" o inexistents que invalidarien els resultats.
 
-## Etapa 2: Filtratge i Curació de les Lectures (Trimmomatic)
+## Etapa 2: Filtratge (Trimmomatic)
 
 Un cop avaluada la qualitat inicial amb **FastQC**, la segona fase del *pipeline* se centra en el pre-processament. Per a aquesta tasca s'ha emprat **Trimmomatic v0.39**, una eina especialitzada en l'eliminació d'artefactes de seqüenciació i la neteja de bases de baixa fiabilitat. L'objectiu és evitar la introducció d'errors durant l'assemblatge *de novo* en etapes posteriors.
-
-
 
 ### Script
 L'eficiència de l'script `scripts/trimmo_ruben.sh` rau en la implementació d'un **bucle `for`**, que permet processar de forma iterativa i automatitzada les 5 mostres del projecte. L'script identifica automàticament cada parella de fitxers (R1 i R2) i executa Trimmomatic en mode **PE (Paired-End)**. Aquest mode avalua ambdues lectures simultàniament per prendre decisions coordinades sobre la integritat del fragment.
@@ -76,33 +74,6 @@ Com a producte d'aquest processament, el programa genera quatre fluxos de dades 
 * **Unpaired (R1/R2):** Només un membre de la parella ha superat els filtres. Es descarten.
 
 ---
-
-## Etapa 2: Trimming (Trimmomatic)
-
-Un cop avaluada la qualitat inicial amb **FastQC**, la segona fase del *pipeline* se centra en el pre-processament. Per a aquesta tasca s'ha emprat **Trimmomatic v0.39**, una eina especialitzada en l'eliminació d'artefactes de seqüenciació i la neteja de bases de baixa fiabilitat per evitar errors durant l'ansemblatge en etapes posteriors.
-
-### Automatització i Execució
-L'eficiència de l'script `scripts/trimmo_ruben.sh` rau en la implementació d'un **bucle for**, el qual permet processar de forma iterativa i automatitzada totes les mostres del projecte. L'script està programat per identificar automàticament cada parella de fitxers (R1 i R2) dins del directori de seqüències brutes.
-
-
-
-Un cop identificades, executa Trimmomatic en mode **PE (Paired-End)**, avaluant ambdues lectures (Forward i Reverse - R1 i R2) simultàniament per prendre decisions coordinades en temps real sobre la integritat de la parella de fragments.
-
-### Configuració i Paràmetres de Filtratge
-Dins de l'execució, s'han definit els següents mòduls per garantir la puresa de les dades:
-
-* **ILLUMINACLIP:NexteraPE-PE.fa:2:30:10**: Mòdul de detecció d'adaptadors Nextera.
-    * El **2** permet fins a dos errors (*mismatches*) en la cerca.
-    * El **30** (palíndrom) i el **10** (simple) són els llindars de puntuació requerits per confirmar que es tracta d'un adaptador i no de DNA real.
-* **LEADING:3** i **TRAILING:3**: Retalla les bases dels extrems (inici i final) si la seva qualitat és inferior a un Phred score de 3, eliminant els errors més evidents dels sensors de la màquina.
-* **SLIDINGWINDOW:4:15**: Filtre dinàmic de qualitat. Analitza la lectura en finestres de 4 bases i la talla si la qualitat mitjana del segment cau per sota de 15. Això elimina les zones on la precisió de la seqüenciació comença a degradar-se.
-* **MINLEN:36**: Estableix que qualsevol lectura que, després de la curació, tingui una longitud inferior a 36 bases sigui descartada. Fragments tan curts podrien generar ambigüitats i falsos alineaments durant l'assemblatge.
-
-### Gestió de Resultats
-Com a resultat d'aquest processament, Trimmomatic genera quatre fluxos de dades per cada mostra que garanteixen la integritat del procés:
-
-1.  **Paired (R1/R2)**: Lectures supervivents on ambdós membres (FORWARD i REVERSE) han superat els controls. Són les dades "netes" i sincronitzades que s'utilitzaran per a l'assemblatge.
-2.  **Unpaired (R1/R2)**: Lectures "òrfenes" on només un membre de la parella ha superat els filtres. Tot i ser seqüències vàlides, es segreguen i es descarten en aquest pipeline per mantenir el rigor i la coherència espacial en la reconstrucció dels *contigs*.
 
 
 ## Etapa 3: Eliminació de l'ADN de l'Hoste (Bowtie2)
