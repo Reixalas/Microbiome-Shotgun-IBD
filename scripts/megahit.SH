@@ -11,7 +11,7 @@ export LANG=C
 
 module load miniconda3
 source ~/.bashrc
-conda activate shotgun1
+conda activate megahit
 
 INPUT_DIR="/home/41701728z/indexos"
 OUTPUT_ROOT="/home/41701728z/assemblies"
