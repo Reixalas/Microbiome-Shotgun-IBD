@@ -107,7 +107,7 @@ L'alineament genera fitxers **SAM** (text pla), que són extremadament voluminos
 #### 3. Filtratge Selectiu per "Flags"
 Aquest és el pas decisiu del procés. Utilitzem la comanda `samtools view` amb els següents *flags* (codis numèrics):
 * **`-f 12`**: Filtre que garanteix l'extracció exclusiva de les parelles on **ni la R1 ni la R2 han alineat** contra el genoma humà.
-* **`-F 256`**: Evita l'extracció d'alineaments secundaris, assegurant que només treballem amb dades primàries i úniques.
+* **`-F 256`**: Evita l'extracció d'alineaments secundaris. A vegades, una lectura podria semblar que encaixa en dos llocs diferents del genoma humà. El programa tria el millor (primari) i marca l'altre com a secundari (256).
 
 #### 4. Restauració al format FASTQ
 Finalment, les dades filtrades (que ja només contenen informació microbiana) es converteixen de nou al format original **FASTQ comprimit (.gz)**. 
