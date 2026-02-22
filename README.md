@@ -92,25 +92,30 @@ L'script `index.sh` executa la comanda `bowtie2-build`, la qual comprimeix el ge
 Aquest pas logístic és el que permet que la següent fase d'eliminació de l'ADN humà sigui viable a nivell computacional, transformant un volum de dades gegantí en una eina de cerca àgil.
 
 
-Per a aquesta descontaminació, utilitzem l'alineador Bowtie2 v2.4.2 comparant les nostres lectures filtrades contra el genoma de referència humà (GRCh38). L'estratègia es basa en un principi d'exclusió: qualsevol lectura que s'alineï amb el genoma humà es descarta, mentre que les lectures que no troben coincidència (lectures unmapped) s'identifiquen com d'origen microbià i es conserven per a l'assemblatge.
+### 3.2. Funcionament de Bowtie2
 
-L'script scripts/bowtie2_ruben.sh automatitza aquest procés en quatre fases clau:
+Per a la descontaminació, s'utilitza l'alineador **Bowtie2 v2.4.2** comparant les lectures filtrades contra el genoma de referència humà (**GRCh38**). L'estratègia es basa en: qualsevol lectura que s'alineï amb el genoma humà es descarta, mentre que les lectures que no troben coincidència (*unmapped*) s'identifiquen com d'origen microbià i es conserven.
 
-1. Alineament d'Alta Sensibilitat
-S'executa la comanda bowtie2 utilitzant el paràmetre --very-sensitive. Aquesta configuració és vital per maximitzar la probabilitat de detectar qualsevol fragment d'ADN humà, fins i tot aquells que presentin petites variacions genètiques o mutacions respecte a la referència. L'objectiu és ser extremadament rigorosos per no arrossegar contaminació humana a les etapes posteriors.
+L'script `scripts/bowtie2_ruben.sh` automatitza aquest procés en quatre fases:
 
-2. Processament i Optimització de Formats
-L'alineament genera fitxers en format SAM, que són fitxers de text pla extremadament voluminosos. Mitjançant samtools, convertim aquestes dades a format BAM (binari comprimit) i les ordenem. Aquest pas no només estalvia espai de disc en el clúster, sinó que és un requisit tècnic perquè el programari pugui realitzar cerques i filtratges de manera eficient.
+#### 1. Alineament d'Alta Sensibilitat
+S'executa `bowtie2` amb el paràmetre `--very-sensitive`. Aquesta configuració és vital per maximitzar la detecció de fragments d'ADN humà, inclús aquells amb petites variacions genètiques respecte a la referència.
 
-3. Filtratge Selectiu per "Flags"
-Aquest és el pas decisiu del procés. Utilitzem la comanda samtools view amb els codis numèrics o flags següents:
+#### 2. Optimització de Formats
+L'alineament genera fitxers **SAM** (text pla), que són extremadament voluminosos. Mitjançant **samtools**, convertim aquestes dades a format **BAM** (binari comprimit) i les ordenem. Aquest pas estalvia espai al clúster i és un requisit tècnic per realitzar cerques i filtratges eficients.
 
--f 12: Aquest filtre garanteix que extreurem exclusivament les parelles de lectures on ni la R1 ni la R2 han alineat contra el genoma humà.
+#### 3. Filtratge Selectiu per "Flags"
+Aquest és el pas decisiu del procés. Utilitzem la comanda `samtools view` amb els següents *flags* (codis numèrics):
+* **`-f 12`**: Filtre que garanteix l'extracció exclusiva de les parelles on **ni la R1 ni la R2 han alineat** contra el genoma humà.
+* **`-F 256`**: Evita l'extracció d'alineaments secundaris, assegurant que només treballem amb dades primàries i úniques.
 
--F 256: S'utilitza per evitar l'extracció d'alineaments secundaris, assegurant que només treballem amb les dades primàries i úniques.
+#### 4. Restauració al format FASTQ
+Finalment, les dades filtrades (que ja només contenen informació microbiana) es converteixen de nou al format original **FASTQ comprimit (.gz)**. 
 
-4. Restauració al format FASTQ
-Finalment, les dades filtrades (que ara ja contenen només informació microbiana) es converteixen de nou al format original FASTQ comprimit (.gz). Aquests fitxers resultants, anomenats _nonhuman_R1.fastq.gz i _nonhuman_R2.fastq.gz, representen les nostres "dades netes" i definitives, llistes per ser utilitzades en la reconstrucció de l'operó bai mitjançant l'assemblatge de genomes.
+---
+
+### Resultat Final
+Els fitxers resultants, anomenats `_nonhuman_R1.fastq.gz` i `_nonhuman_R2.fastq.gz`, representen les nostres **dades pures**.
 
 ## 🧩 Etapa 4: Assemblatge de Genomes *de novo* (MEGAHIT)
 
