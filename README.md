@@ -1,6 +1,6 @@
 # Shotgun Metagenomics Analysis of IBD Samples
 
-This repository contains the bioinformatics analysis pipeline for processing **shotgun metagenomics samples** from the study by **Lee et al. (2021)**, published in *Cell Host & Microbe*. The primary objective of the analysis is the study of the gut microbiome in patients with Inflammatory Bowel Disease (IBD). Due to the high data load, an optimized processing strategy has been implemented in **batches of 5 samples**.
+This repository contains the bioinformatics analysis pipeline for processing shotgun metagenomics samples from the study by **Lee et al. (2021)**, published in *Cell Host & Microbe*. The primary objective of the analysis is the study of the gut microbiome in patients with Inflammatory Bowel Disease (IBD). Due to the high data load, an optimized processing strategy has been implemented in batches of 5 samples.
 
 
 
@@ -8,7 +8,7 @@ This repository contains the bioinformatics analysis pipeline for processing **s
 
 ## Data Availability
 
-The raw sequencing data used in this project are deposited in the **NCBI Sequence Read Archive (SRA)** database. They can be consulted and downloaded using the BioProject identifier:
+The raw sequencing data used in this project are deposited in the NCBI Sequence Read Archive (SRA) database. They can be consulted and downloaded using the BioProject identifier:
 
 * **BioProject ID:** [PRJNA685168](https://www.ncbi.nlm.nih.gov/bioproject/?term=PRJNA685168)
 
@@ -26,8 +26,8 @@ Before executing any stage of the pipeline, it is essential to ensure that the s
 
 ## Stage 1: Quality Control (FastQC)
 
-Before performing any biological inference, it is indispensable to validate the **technical integrity** and reliability of the raw sequencing data.
-The script `scripts/shotgunR.sh` has been used to execute the **FastQC** tool. This process analyzes the read files (`.fastq.gz`) and generates diagnostic reports based on four key metrics:
+Before performing any biological inference, it is indispensable to validate the technical integrity and reliability of the raw sequencing data.
+The script `scripts/shotgunR.sh` has been used to execute the FastQC tool. This process analyzes the read files (`.fastq.gz`) and generates diagnostic reports based on four key metrics:
 
 ---
 
@@ -53,12 +53,12 @@ Detects synthetic DNA fragments (adapters) used during library preparation in th
 
 ## Stage 2: Filtering (Trimmomatic)
 
-Once the initial quality has been evaluated with **FastQC**, the second phase of the pipeline focuses on pre-processing. For this task, **Trimmomatic** has been used, a tool specialized in removing low-reliability bases. The goal is to avoid introducing errors during *de novo* assembly in later stages.
+Once the initial quality has been evaluated with FastQC, the second phase of the pipeline focuses on pre-processing. For this task, Trimmomatic has been used, a tool specialized in removing low-reliability bases. The goal is to avoid introducing errors during *de novo* assembly in later stages.
 
 ### Script
-The efficiency of the `scripts/trimmomatic.sh` script lies in the implementation of a **`for` loop**, which allows for the iterative and automated processing of the 5 samples in the project. The script automatically identifies each pair of files (R1 and R2) and executes Trimmomatic in **PE (Paired-End)** mode. This mode evaluates both reads simultaneously to make coordinated decisions regarding the integrity of the fragment.
+The efficiency of the `scripts/trimmomatic.sh` script lies in the implementation of a `for` loop, which allows for the iterative and automated processing of the 5 samples in the project. The script automatically identifies each pair of files (R1 and R2) and executes Trimmomatic in PE (Paired-End) mode. This mode evaluates both reads simultaneously to make coordinated decisions regarding the integrity of the fragment.
 
-A critical point at this stage is the correct selection of the adapter sequence. For this pipeline, the specific path within the working environment has been verified to use the **Nextera** adapter file.
+A critical point at this stage is the correct selection of the adapter sequence. For this pipeline, the specific path within the working environment has been verified to use the Nextera adapter file.
 
 * **Adapter Path:** `/opt/ohpc/pub/utils/miniconda3/envs/shotgun1/share/trimmomatic-0.40-0/adapters/NexteraPE-PE.fa`
 
@@ -67,10 +67,10 @@ The following modules have been defined to ensure data purity before assembly:
 
 | Parameter | Technical Description |
 | :--- | :--- |
-| **ILLUMINACLIP:NexteraPE-PE.fa:2:30:10** | Nextera adapter removal. A threshold of **2** mismatches and scores of **30** (palindrome) and **10** (simple) are used to avoid false positives. |
+| **ILLUMINACLIP:NexteraPE-PE.fa:2:30:10** | Nextera adapter removal. A threshold of 2 mismatches and scores of 30 (palindrome) and 10 (simple) are used to avoid false positives. |
 | **LEADING:3** / **TRAILING:3** | Trims bases from the ends (start and finish) if their quality is lower than a **Phred score of 3**. |
 | **SLIDINGWINDOW:4:15** | Dynamic quality filter. It analyzes the read in 4-base windows and trims it if the average quality of the segment falls below **15**. |
-| **MINLEN:36** | Establishes that any read that, after curation, has a length shorter than **36 bases** is discarded to avoid ambiguities during assembly. |
+| **MINLEN:36** | Establishes that any read that, after curation, has a length shorter than 36 bases is discarded to avoid ambiguities during assembly. |
 
 ### Results
 As a result of this processing, the program generates four data streams for each sample.
@@ -79,7 +79,7 @@ As a result of this processing, the program generates four data streams for each
 * **Unpaired (R1/R2):** Only one member of the pair has passed the filters. They are discarded.
 
 #### Post-Trimming Validation
-To ensure that the filtering parameters were effective, a second quality assessment is mandatory. We utilized the script `scripts/paired_quality.sh` to automate a post-processing **FastQC** analysis.
+To ensure that the filtering parameters were effective, a second quality assessment is mandatory. We utilized the script `scripts/paired_quality.sh` to automate a post-processing FastQC analysis.
 
 ---
 
@@ -109,18 +109,18 @@ The `scripts/bowtie2.sh` script automates this process in four phases:
 
 
 #### 2. Format Optimization
-The alignment generates **SAM** files (plain text), which are extremely bulky. Using **samtools**, we convert these data to **BAM** format (compressed binary) and sort them. This step saves space on the cluster and is a technical requirement for efficient searching and filtering.
+The alignment generates SAM files (plain text), which are extremely bulky. Using samtools, we convert these data to BAM format (compressed binary) and sort them. This step saves space on the cluster and is a technical requirement for efficient searching and filtering.
 
 #### 3. Selective Filtering by "Flags"
 This is the decisive step of the process. We use the `samtools view` command with the following *flags* (numeric codes):
-* **`-f 12`**: Filter that guarantees the exclusive extraction of pairs where **neither R1 nor R2 have aligned** against the human genome.
+* **`-f 12`**: Filter that guarantees the exclusive extraction of pairs where neither R1 nor R2 have aligned against the human genome.
 * **`-F 256`**: Avoids the extraction of secondary alignments. Sometimes, a read might seem to fit in two different places in the human genome. The program chooses the best (primary) and marks the other as secondary (256).
 
 #### 4. Restoration to FASTQ format
-Finally, the filtered data (which now contain only microbial information) are converted back to the original **compressed FASTQ (.gz)** format. 
+Finally, the filtered data (which now contain only microbial information) are converted back to the original compressed FASTQ (.gz) format. 
 
 ### Final Result
-The resulting files, named `_nonhuman_R1.fastq.gz` and `_nonhuman_R2.fastq.gz`, represent our **pure data**.
+The resulting files, named `_nonhuman_R1.fastq.gz` and `_nonhuman_R2.fastq.gz`, represent our pure data.
 
 ---
 
@@ -137,8 +137,8 @@ We need to perform this step because most of the genes we are looking for are mu
 
 
 ### How does *de novo* assembly work?
-Since we are analyzing environmental samples (fecal metagenomics), we do not know exactly which bacteria are there; therefore, we cannot use a "mold" or reference. We perform a ***de novo*** assembly (from scratch) following these steps:
+Since we are analyzing environmental samples (fecal metagenomics), we do not know exactly which bacteria are there; therefore, we cannot use a "mold" or reference. We perform a de novo assembly following these steps:
 
-* **K-mer Slicing:** The program divides the reads into even smaller fragments called *k-mers*.
+* **K-mer Slicing:** The program divides the reads into even smaller fragments called k-mers.
 * **Connection by Overlap:** If two k-mers are identical, the computer understands they come from the same DNA fragment and connects them.
-* **Contig Construction:** Following these connections, the algorithm builds increasingly longer continuous sequences called **contigs**.
+* **Contig Construction:** Following these connections, the algorithm builds increasingly longer continuous sequences called contigs.
