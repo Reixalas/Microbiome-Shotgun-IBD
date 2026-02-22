@@ -116,23 +116,24 @@ Aquest és el pas decisiu del procés. Utilitzem la comanda `samtools view` amb 
 #### 4. Restauració al format FASTQ
 Finalment, les dades filtrades (que ja només contenen informació microbiana) es converteixen de nou al format original **FASTQ comprimit (.gz)**. 
 
----
 
 ### Resultat Final
 Els fitxers resultants, anomenats `_nonhuman_R1.fastq.gz` i `_nonhuman_R2.fastq.gz`, representen les nostres **dades pures**.
 
-## 🧩 Etapa 4: Assemblatge de Genomes *de novo* (MEGAHIT)
+---
 
-Per què fem l'assemblatge?
-Fins ara, el nostre pipeline ens ha proporcionat milions de lectures curtes (reads) netes. Tanmateix, aquestes lectures són fragments aleatoris i petits que, per si sols, no ens donen una visió completa de la biologia de la mostra.
+## Etapa 4: Assemblatge de Genomes *de novo* (MEGAHIT)
 
-L'assemblatge és el pas on passem de tenir "confeti" d'ADN a tenir "paràgrafs" amb sentit. Necessitem fer aquest pas perquè la majoria de gens que busquem (com els de l'operó bai) són molt més llargs que una simple lectura. L'assemblatge ens permet reconstruir les seqüències genòmiques originals per poder identificar quins bacteris estan presents i quines capacitats metabòliques tenen.
+### Per què fem l'assemblatge?
 
-🛠️ Com funciona l'assemblatge de novo?
-Com que estem analitzant mostres ambientals (metagenòmica de femta), no sabem exactament quins bacteris hi ha; per tant, no podem fer servir un "motlle" o referència. Realitzem un assemblatge de novo (des de zero).
+Fins ara, el nostre *pipeline* ens ha proporcionat milions de lectures curtes (*reads*) netes. Tanmateix, aquestes lectures són fragments aleatoris i petits que, per si sols, no ens donen una visió completa de la biologia de la mostra.
 
-Trossejament en k-mers: El programa divideix les lectures en fragments encara més petits anomenats k-mers.
+Necessitem fer aquest pas perquè la majoria de gens que busquem són molt més llargs que una simple lectura. L'assemblatge ens permet reconstruir les seqüències genòmiques originals per poder identificar quins bacteris estan presents i quines capacitats metabòliques tenen.
 
-Connexió per solapament: Si dos k-mers són idèntics, l'ordinador entén que provenen del mateix fragment d'ADN i els connecta.
 
-Construcció de Contigs: Seguint aquestes connexions, l'algorisme construeix seqüències contínues cada cop més llargues anomenades contigs.
+### Com funciona l'assemblatge *de novo*?
+Com que estem analitzant mostres ambientals (metagenòmica de femta), no sabem exactament quins bacteris hi ha; per tant, no podem fer servir un "motlle" o referència. Realitzem un assemblatge ***de novo*** (des de zero) seguint aquests passos:
+
+* **Trossejament en *k-mers*:** El programa divideix les lectures en fragments encara més petits anomenats *k-mers*.
+* **Connexió per solapament:** Si dos *k-mers* són idèntics, l'ordinador entén que provenen del mateix fragment d'ADN i els connecta.
+* **Construcció de *Contigs*:** Seguint aquestes connexions, l'algorisme construyeix seqüències contínues cada cop més llargues anomenades **contigs**.
