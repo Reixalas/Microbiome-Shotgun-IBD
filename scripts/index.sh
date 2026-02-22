@@ -1,8 +1,8 @@
 #! /bin/bash
 
-#SBATCH --job-name=index				# Job name
-#SBATCH --output=index.%j.out		# Name of stdout output file (%j expands to %jobId)
-#SBATCH --error=index.%j.err		# Name of stdout output file (%j expands to %jobId)
+#SBATCH --job-name=index_R				# Job name
+#SBATCH --output=index_R.%j.out		# Name of stdout output file (%j expands to %jobId)
+#SBATCH --error=index_R.%j.err		# Name of stdout output file (%j expands to %jobId)
 #SBATCH --cpus-per-task=4			# Specifies that the job requires 6 CPUs
 #SBATCH --mem=32G				# Specifies that the job requires 48 gigabytes of memory.
 
