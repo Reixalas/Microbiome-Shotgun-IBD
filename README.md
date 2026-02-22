@@ -56,24 +56,24 @@ Un cop avaluada la qualitat inicial amb **FastQC**, la segona fase del *pipeline
 
 
 
-### ⚙️ Automatització i Execució
-L'eficiència de l'script `scripts/trimmo_ruben.sh` rau en la implementació d'un **bucle `for`**, que permet processar de forma iterativa i automatitzada les 114 mostres del projecte. L'script identifica automàticament cada parella de fitxers (R1 i R2) i executa Trimmomatic en mode **PE (Paired-End)**. Aquest mode és crític, ja que avalua ambdues lectures simultàniament per prendre decisions coordinades sobre la integritat del fragment.
+### Script
+L'eficiència de l'script `scripts/trimmo_ruben.sh` rau en la implementació d'un **bucle `for`**, que permet processar de forma iterativa i automatitzada les 5 mostres del projecte. L'script identifica automàticament cada parella de fitxers (R1 i R2) i executa Trimmomatic en mode **PE (Paired-End)**. Aquest mode avalua ambdues lectures simultàniament per prendre decisions coordinades sobre la integritat del fragment.
 
-### 🛠️ Configuració i Paràmetres de Filtratge
+### Paràmetres de Filtratge
 S'han definit els següents mòduls per garantir la puresa de les dades abans de l'assemblatge:
 
 | Paràmetre | Descripció Tècnica |
 | :--- | :--- |
-| **ILLUMINACLIP** | Eliminació d'adaptadors Nextera. S'utilitza un llindar de **2** *mismatches* i puntuacions de **30** (palíndrom) i **10** (simple) per evitar falsos positius. |
-| **LEADING:3** / **TRAILING:3** | Retalla les bases dels extrems (inici i final) si la seva qualitat és inferior a un **Phred score de 3**, eliminant els errors més evidents dels sensors. |
+| **ILLUMINACLIP:NexteraPE-PE.fa:2:30:10** | Eliminació d'adaptadors Nextera. S'utilitza un llindar de **2** *mismatches* i puntuacions de **30** (palíndrom) i **10** (simple) per evitar falsos positius. |
+| **LEADING:3** / **TRAILING:3** | Retalla les bases dels extrems (inici i final) si la seva qualitat és inferior a un **Phred score de 3**. |
 | **SLIDINGWINDOW:4:15** | Filtre dinàmic que analitza la lectura en finestres de 4 bases. Si la qualitat mitjana del segment cau per sota de **15**, la lectura es talla en aquest punt. |
 | **MINLEN:36** | Qualsevol lectura que, després de la curació, tingui una longitud inferior a **36 bases** és descartada per evitar ambigüitats en l'assemblatge. |
 
-### 📊 Gestió de Resultats
+### Resultats
 Com a producte d'aquest processament, el programa genera quatre fluxos de dades per cada mostra.
 
-* **Paired (R1/R2):** Lectures "supervivents" on ambdós membres han superat els controls de qualitat. Són les dades sincronitzades que s'utilitzaran per a la reconstrucció genòmica.
-* **Unpaired (R1/R2):** Lectures "òrfenes" on només un membre de la parella ha superat els filtres. Tot i ser vàlides, es descarten en aquest *pipeline* per mantenir la coherència espacial necessària en l'assemblatge de *contigs*.
+* **Paired (R1/R2):** Ambdós membres han superat els controls de qualitat. Seran les dades que utilitzarem.
+* **Unpaired (R1/R2):** Només un membre de la parella ha superat els filtres. Es descarten.
 
 ---
 
