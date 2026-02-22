@@ -1,8 +1,8 @@
 #! /bin/bash
 
-#SBATCH --job-name=paired_qualitat				# Job name
-#SBATCH --output=paired_qualitat.%j.out		# Name of stdout output file (%j expands to %jobId)
-#SBATCH --error=paired_qualitat.%j.err		# Name of stdout output file (%j expands to %jobId)
+#SBATCH --job-name=paired_quality_R				# Job name
+#SBATCH --output=paired_quality_R.%j.out		# Name of stdout output file (%j expands to %jobId)
+#SBATCH --error=paired_quality_R.%j.err		# Name of stdout output file (%j expands to %jobId)
 #SBATCH --cpus-per-task=4			# Specifies that the job requires 6 CPUs
 #SBATCH --mem=32G				# Specifies that the job requires 48 gigabytes of memory.
 
