@@ -99,4 +99,16 @@ Finalment, les dades filtrades (que ara ja contenen només informació microbian
 
 ## 🧩 Etapa 4: Assemblatge de Genomes *de novo* (MEGAHIT)
 
-L'objectiu d'aquesta etapa és reconstruir els genomes dels microorganismes presents a les mostres. Com que no utilitzem un genoma de referència per "ordenar" les peces (a diferència de l'etapa humana), realitzem un assemblatge de novo. L'algorisme de MEGAHIT agafa els milions de lectures curtes (reads) netes i busca regions idèntiques on se solapen. El programa connecta aquestes lectures per formar seqüències molt més llargues, contínues i robustes anomenades contigs (És una seqüència d'ADN contínua resultant de la unió de moltes lectures).
+Per què fem l'assemblatge?
+Fins ara, el nostre pipeline ens ha proporcionat milions de lectures curtes (reads) netes. Tanmateix, aquestes lectures són fragments aleatoris i petits que, per si sols, no ens donen una visió completa de la biologia de la mostra.
+
+L'assemblatge és el pas on passem de tenir "confeti" d'ADN a tenir "paràgrafs" amb sentit. Necessitem fer aquest pas perquè la majoria de gens que busquem (com els de l'operó bai) són molt més llargs que una simple lectura. L'assemblatge ens permet reconstruir les seqüències genòmiques originals per poder identificar quins bacteris estan presents i quines capacitats metabòliques tenen.
+
+🛠️ Com funciona l'assemblatge de novo?
+Com que estem analitzant mostres ambientals (metagenòmica de femta), no sabem exactament quins bacteris hi ha; per tant, no podem fer servir un "motlle" o referència. Realitzem un assemblatge de novo (des de zero).
+
+Trossejament en k-mers: El programa divideix les lectures en fragments encara més petits anomenats k-mers.
+
+Connexió per solapament: Si dos k-mers són idèntics, l'ordinador entén que provenen del mateix fragment d'ADN i els connecta.
+
+Construcció de Contigs: Seguint aquestes connexions, l'algorisme construeix seqüències contínues cada cop més llargues anomenades contigs.
