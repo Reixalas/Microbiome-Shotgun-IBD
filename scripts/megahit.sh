@@ -6,9 +6,6 @@
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=32G
 
-export LC_ALL=C
-export LANG=C
-
 module load miniconda3
 source ~/.bashrc
 conda activate megahit
@@ -26,6 +23,5 @@ for R1 in "$INPUT_DIR"/*_nonhuman_R1.fastq.gz; do
     -1 "$R1" \
     -2 "$R2" \
     -t 4 \
-    -o "$OUTPUT_ROOT/megahit_$BASE" \
-    --out-prefix "$BASE"
+    -o "$OUTPUT_ROOT/megahit_$BASE" 
 done
