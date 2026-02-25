@@ -140,3 +140,14 @@ Since we are analyzing environmental samples (fecal metagenomics), we do not kno
 * **K-mer Slicing:** The program divides the reads into even smaller fragments called k-mers.
 * **Connection by Overlap:** If two k-mers are identical, the computer understands they come from the same DNA fragment and connects them.
 * **Contig Construction:** Following these connections, the algorithm builds increasingly longer continuous sequences called contigs.
+
+## Stage 5: Taxonomic Classification (Kraken2)
+
+After reconstructing the sequences (contigs) or filtering the reads, the next objective is to identify "who is there". For this, we use **Kraken2**, a taxonomic classification system that uses exact alignments of k-mers to assign taxonomic labels to sequencing reads.
+
+### 5.1. Database Preparation
+Kraken2 relies on a reference database to perform identifications. For this study, the **Standard Database** has been used, which includes:
+
+* **RefSeq:** Archaea, Bacteria, and Viruses.
+
+The database construction was performed using the `kraken2-build --standard` command.
