@@ -1,8 +1,8 @@
 #!/bin/bash
 
-#SBATCH --job-name=trimmomatic_R			# Job name
-#SBATCH --output=trimmomatic_R.%j.out		# Name of stdout output file (%j expands to %jobId)
-#SBATCH --error=trimmomatic_R.%j.err		# Name of stdout output file (%j expands to %jobId)
+#SBATCH --job-name=trimmomatic_ruben				# Job name
+#SBATCH --output=trimmomatic_ruben.%j.out		# Name of stdout output file (%j expands to %jobId)
+#SBATCH --error=trimmomatic_ruben.%j.err		# Name of stdout output file (%j expands to %jobId)
 #SBATCH --cpus-per-task=4			# Specifies that the job requires 6 CPUs
 #SBATCH --mem=32G				# Specifies that the job requires 48 gigabytes of memory.
 
@@ -11,9 +11,10 @@ source ~/.bashrc
 conda activate shotgun1
 
 INPUT_DIR="/opt/ohpc/pub/utils/miniconda3/envs/shotgun1/share/trimmomatic-0.40-0/adapters/NexteraPE-PE.fa"
-OUTPUT_DIR="/home/41701728z/trimmo"
-INPUT_SEQ="/cabina/digdb/MBio/IBD_Biologics_5samples/Seq"
+OUTPUT_DIR="/cabina/digdb/MBio/IBD_Biologics/trimmomatic_seq"
+INPUT_SEQ="/cabina/digdb/MBio/IBD_Biologics/Seq"
 mkdir -p "$OUTPUT_DIR"
+
 for R1 in "$INPUT_SEQ"/*_1.fastq.gz; do
 	BASE=$(basename "${R1}" _1.fastq.gz)
 	R2="$INPUT_SEQ"/"$BASE"_2.fastq.gz
@@ -30,3 +31,6 @@ for R1 in "$INPUT_SEQ"/*_1.fastq.gz; do
 	SLIDINGWINDOW:4:15 \
 	MINLEN:36
 done
+
+module purge
+echo "All tasks completed"
