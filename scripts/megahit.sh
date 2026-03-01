@@ -10,8 +10,8 @@ module load miniconda3
 source ~/.bashrc
 conda activate megahit
 
-INPUT_DIR="/home/41701728z/indexos"
-OUTPUT_ROOT="/home/41701728z/assemblies"
+INPUT_DIR="/cabina/digdb/MBio/IBD_Biologics/bowtie_seq"
+OUTPUT_ROOT="/cabina/digdb/MBio/IBD_Biologics/megahit_seq"
 
 mkdir -p "$OUTPUT_ROOT"
 
@@ -25,3 +25,6 @@ for R1 in "$INPUT_DIR"/*_nonhuman_R1.fastq.gz; do
     -t 4 \
     -o "$OUTPUT_ROOT/megahit_$BASE" 
 done
+
+module purge
+echo "All tasks completed"
