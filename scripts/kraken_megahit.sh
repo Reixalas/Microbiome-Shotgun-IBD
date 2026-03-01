@@ -12,7 +12,7 @@ conda activate shotgun1
 
 BASE_DADES="/cabina/comu/mbiodb/shotgun1/kraken_db1"
 INPUT_DIR="/home/41701728z/assemblies2"  
-OUTPUT_DIR="/home/41701728z/kraken_megahit_results"
+OUTPUT_DIR="/home/41701728z/kraken_megahit"
 
 mkdir -p "$OUTPUT_DIR"
 
