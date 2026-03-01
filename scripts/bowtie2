@@ -1,8 +1,8 @@
 #!/bin/bash
 
-#SBATCH --job-name=bowtie2_R
-#SBATCH --output=bowtie2_R.%j.out
-#SBATCH --error=bowtie2_R.%j.err
+#SBATCH --job-name=bowtie2_seq
+#SBATCH --output=bowtie2_seq.%j.out
+#SBATCH --error=bowtie2_seq.%j.err
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=32G
 
@@ -12,10 +12,11 @@ module load miniconda3
 source ~/.bashrc
 conda activate shotgun1
 
-INPUT_DIR="/home/41701728z/trimmo"
-OUTPUT_DIR="/home/41701728z/indexos"
+INPUT_DIR="/cabina/digdb/MBio/IBD_Biologics/trimmomatic_seq"
+INDEX_DIR="/cabina/comu/mbiodb/shotgun/human_genome_reference"
+RESULTS_DIR="/cabina/digdb/MBio/IBD_Biologics/bowtie_seq"
 
-mkdir -p "$OUTPUT_DIR"
+mkdir -p "$RESULTS_DIR"
 
 for R1 in "$INPUT_DIR"/*_R1_paired.fastq.gz; do
     BASE=$(basename "${R1}" _R1_paired.fastq.gz)
@@ -24,22 +25,28 @@ for R1 in "$INPUT_DIR"/*_R1_paired.fastq.gz; do
     echo "Processing sample: $BASE"
 
 
-    bowtie2 -x "$OUTPUT_DIR"/GRCh38_index \
+    bowtie2 -x "$INDEX_DIR"/GRCh38_index \
     -1 "$R1" \
     -2 "$R2" \
     --very-sensitive \
-    -S "$OUTPUT_DIR"/"$BASE".sam \
+    -S "$RESULTS_DIR"/"$BASE".sam \
     -p 4
     
-    samtools view -uS "$OUTPUT_DIR"/"$BASE".sam | samtools sort -o "$OUTPUT_DIR"/"$BASE"_sorted.bam -
+    samtools view -uS "$RESULTS_DIR"/"$BASE".sam | samtools sort -o "$RESULTS_DIR"/"$BASE"_sorted.bam -
     
-    samtools view -b -f 12 -F 256 "$OUTPUT_DIR"/"$BASE"_sorted.bam > "$OUTPUT_DIR"/"$BASE"_nonhuman.bam 
+    
+    samtools view -b -f 12 -F 256 "$RESULTS_DIR"/"$BASE"_sorted.bam > "$RESULTS_DIR"/"$BASE"_nonhuman.bam 
 
+    
     samtools fastq \
-    -1 "$OUTPUT_DIR"/"$BASE"_nonhuman_R1.fastq.gz \
-    -2 "$OUTPUT_DIR"/"$BASE"_nonhuman_R2.fastq.gz \
+    -1 "$RESULTS_DIR"/"$BASE"_nonhuman_R1.fastq.gz \
+    -2 "$RESULTS_DIR"/"$BASE"_nonhuman_R2.fastq.gz \
     -0 /dev/null -s /dev/null -n \
-    "$OUTPUT_DIR"/"$BASE"_nonhuman.bam 
+    "$RESULTS_DIR"/"$BASE"_nonhuman.bam 
 
-    rm "$OUTPUT_DIR"/"$BASE".sam "$OUTPUT_DIR"/"$BASE"_sorted.bam "$OUTPUT_DIR"/"$BASE"_nonhuman.bam
+    
+    rm "$RESULTS_DIR"/"$BASE".sam "$RESULTS_DIR"/"$BASE"_sorted.bam "$RESULTS_DIR"/"$BASE"_nonhuman.bam
 done
+
+module purge
+echo "All tasks completed"
