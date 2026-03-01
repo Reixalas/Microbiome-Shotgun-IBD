@@ -10,10 +10,11 @@ module load miniconda3
 source ~/.bashrc
 conda activate shotgun1
 
-INPUT_DIR="/cabina/digdb/MBio/IBD_Biologics_5samples/Seq"
-OUTPUT_DIR="/home/41701728z/resultatsfastqc"
+INPUT_DIR="/cabina/digdb/MBio/IBD_Biologics/Seq"
+OUTPUT_DIR="/cabina/digdb/MBio/IBD_Biologics/seq_quality"
+mkdir -p "$OUTPUT_DIR"
 
-fastqc "$INPUT_DIR"/*_1.fastq.gz "$INPUT_DIR"/*_2.fastq.gz -o "$OUTPUT_DIR"
+fastqc -t 4 "$INPUT_DIR"/*_1.fastq.gz "$INPUT_DIR"/*_2.fastq.gz -o "$OUTPUT_DIR"
 
 
 
