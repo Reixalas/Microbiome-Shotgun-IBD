@@ -22,7 +22,7 @@ for R1 in "$INPUT_DIR"/*_nonhuman_R1.fastq.gz; do
     megahit \
     -1 "$R1" \
     -2 "$R2" \
-    -t 4 \
+    -t 8 \
     -o "$OUTPUT_ROOT/megahit_$BASE" 
 done
 
