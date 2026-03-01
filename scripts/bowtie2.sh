@@ -30,7 +30,7 @@ for R1 in "$INPUT_DIR"/*_R1_paired.fastq.gz; do
     -2 "$R2" \
     --very-sensitive \
     -S "$RESULTS_DIR"/"$BASE".sam \
-    -p 4
+    -p 8
     
     samtools view -uS "$RESULTS_DIR"/"$BASE".sam | samtools sort -o "$RESULTS_DIR"/"$BASE"_sorted.bam -
     
