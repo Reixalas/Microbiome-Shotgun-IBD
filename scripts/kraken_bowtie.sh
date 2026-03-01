@@ -1,36 +1,41 @@
 #!/bin/bash
 
-#SBATCH --job-name=kraken_bowtie
-#SBATCH --output=kraken_bowtie.%j.out
-#SBATCH --error=kraken_bowtie.%j.err
-#SBATCH --cpus-per-task=16            # Pugem a 8 per anar més ràpid
-#SBATCH --mem=128G                    # Mantenim els 128G per seguretat amb la DB
+#SBATCH --job-name=kraken_megahit
+#SBATCH --output=kraken_megahit.%j.out
+#SBATCH --error=kraken_megahit.%j.err
+#SBATCH --cpus-per-task=16
+#SBATCH --mem=128G
 
 module load miniconda3
 source ~/.bashrc
 conda activate shotgun1
 
 BASE_DADES="/cabina/comu/mbiodb/shotgun1/kraken_db1"
-INPUT_DIR="/home/41701728z/indexos"
-OUTPUT_DIR="/home/41701728z/kraken_bowtie"
+INPUT_DIR="/home/41701728z/assemblies2"  
+OUTPUT_DIR="/home/41701728z/kraken_megahit_results"
 
 mkdir -p "$OUTPUT_DIR"
 
-
-for R1 in "$INPUT_DIR"/*_nonhuman_R1.fastq.gz; do
-    BASE=$(basename "${R1}" _nonhuman_R1.fastq.gz)
-    R2="$INPUT_DIR/${BASE}_nonhuman_R2.fastq.gz"
+for SAMPLE_DIR in "$INPUT_DIR"/megahit_*; do
+    BASE=$(basename "$SAMPLE_DIR" | sed 's/megahit_//')
     
-    echo "Processing sample: $BASE"
+    CONTIGS="$SAMPLE_DIR/final.contigs.fa"
 
-    kraken2 --db "$BASE_DADES" \
-        --paired \
-        --gzip-compressed \
-        --threads 32 \
-        --report "$OUTPUT_DIR/${BASE}_report.txt" \
-        --output "$OUTPUT_DIR/${BASE}_output.txt" \
-        "$R1" "$R2"
+    if [ -f "$CONTIGS" ]; then
+        echo "----------------------------------------------------"
+        echo "Classificant CONTIGS de la mostra: $BASE"
+        echo "----------------------------------------------------"
+
+        
+        kraken2 --db "$BASE_DADES" \
+            --threads 32 \
+            --report "$OUTPUT_DIR/${BASE}_contigs_report.txt" \
+            --output "$OUTPUT_DIR/${BASE}_contigs_output.txt" \
+            "$CONTIGS"
+    else
+        echo "Atenció: No s'ha trobat el fitxer de contigs a $SAMPLE_DIR"
+    fi
 done
 
 module purge
-echo "All tasks completed"
+echo "Anàlisi taxonòmica de contigs finalitzada."
